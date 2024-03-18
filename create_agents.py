@@ -4,9 +4,12 @@ import os
 import sys
 from spade.agent import Agent
 from agents.center import CenterAgent  # Importing the CenterAgent class
+from agents.drone import DroneAgent  # Importing the DroneAgent class
+from models.order import Order  # Importing the DroneAgent class
 
+from aux import extract_numeric_value
 
-def read_csv(filename):
+def read_center_csv(filename):
     centers = []
     with open(filename, "r") as csvfile:
         reader = csv.reader(csvfile, delimiter=";")
@@ -19,31 +22,45 @@ def read_csv(filename):
         orders = []
         for row in reader:
             order_id, order_latitude, order_longitude, order_weight = row
-            order_latitude = float(order_latitude.replace(",", "."))
-            order_longitude = float(order_longitude.replace(",", "."))
-            order_weight = float(order_weight)
-            orders.append({
-                "id": order_id,
-                "latitude": order_latitude,
-                "longitude": order_longitude,
-                "weight": order_weight
-            })
+            orders.append(Order(order_id, order_latitude,
+                          order_longitude, order_weight))
         centers.append(CenterAgent(center_id + "@localhost", "1234",
                                    center_id, latitude, longitude, weight, orders))
     return centers
 
 
+def read_drone_csv(filename):
+    drones = []
+    with open(filename, "r") as csvfile:
+        reader = csv.reader(csvfile, delimiter=";")
+        next(reader)  # Skip the header
+        for row in reader:
+            drone_id, capacity, autonomy, velocity = row
+            drones.append(DroneAgent(drone_id + "@localhost", "1234",
+                                     extract_numeric_value(capacity), extract_numeric_value(autonomy), extract_numeric_value(velocity)))
+    return drones
+
+
 def main():
-    csv_files = ["data/delivery_center1.csv",
-                 "data/delivery_center2.csv"]  # List of CSV files
+    center_files = ["data/delivery_center1.csv",
+                    "data/delivery_center2.csv"]  # List of CSV files
+    drone_file = "data/delivery_drones.csv"  # List of CSV files
     agents = []
 
-    for filename in csv_files:
+    for filename in center_files:
         if os.path.exists(filename):
-            centers = read_csv(filename)
+            centers = read_center_csv(filename)
             agents.extend(centers)
         else:
             print(f"File {filename} not found.")
+
+    if os.path.exists(drone_file):
+        drones = read_drone_csv(drone_file)
+        for agent in agents:
+            agent.drones = drones
+        agents.extend(drones)
+    else:
+        print(f"File {filename} not found.")
 
     async def run_agents():
         for agent in agents:
