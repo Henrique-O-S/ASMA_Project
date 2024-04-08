@@ -3,17 +3,20 @@ from spade.behaviour import OneShotBehaviour
 
 
 class DroneAgent(agent.Agent):
-    def __init__(self, jid, password, capacity, autonomy, velocity, orders=[]):
+    def __init__(self, jid, password, capacity, autonomy, velocity, initialPos, orders=[]):
         super().__init__(jid, password)
         self.capacity = capacity
         self.autonomy = autonomy
         self.velocity = velocity
+        self.initialPos = initialPos
+        self.latitude = 0
+        self.longitude = 0
         self.number = self.extract_numeric_value(jid)
         self.orders = orders
 
     async def setup(self):
         print(
-            f"Drone agent {self.number} started with capacity {self.capacity}, autonomy {self.autonomy} and velocity {self.velocity}")
+            f"Drone agent {self.number} started at ({self.latitude}, {self.longitude}) with capacity {self.capacity}, autonomy {self.autonomy} and velocity {self.velocity}")
         b = DroneBehaviour()
         self.add_behaviour(b)
 
@@ -44,6 +47,12 @@ class DroneAgent(agent.Agent):
 
     def get_orders(self):
         return self.orders
+    
+    def get_latitude(self):
+        return self.latitude
+    
+    def get_longitude(self):
+        return self.longitude
 
 
 class DroneBehaviour(OneShotBehaviour):

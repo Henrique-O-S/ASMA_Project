@@ -24,7 +24,7 @@ def read_center_csv(filename):
             order_id, order_latitude, order_longitude, order_weight = row
             orders.append(Order(order_id, order_latitude,
                           order_longitude, order_weight))
-        centers.append(CenterAgent(center_id + "@localhost", "1234",
+        centers.append(CenterAgent(center_id + "@localhost", "admin",
                                    center_id, latitude, longitude, weight, orders))
     return centers
 
@@ -35,9 +35,9 @@ def read_drone_csv(filename):
         reader = csv.reader(csvfile, delimiter=";")
         next(reader)  # Skip the header
         for row in reader:
-            drone_id, capacity, autonomy, velocity = row
-            drones.append(DroneAgent(drone_id + "@localhost", "1234",
-                                     extract_numeric_value(capacity), extract_numeric_value(autonomy), extract_numeric_value(velocity)))
+            drone_id, capacity, autonomy, velocity, initialPos = row
+            drones.append(DroneAgent(drone_id + "@localhost", "admin",
+                                     extract_numeric_value(capacity), extract_numeric_value(autonomy), extract_numeric_value(velocity), initialPos))
     return drones
 
 
@@ -56,6 +56,13 @@ def main():
 
     if os.path.exists(drone_file):
         drones = read_drone_csv(drone_file)
+        for drone in drones:
+            # find latitude and longitude of the center in the drone's initial position
+            for agent in agents:
+                if agent.get_center_id() in drone.initialPos:
+                    drone.latitude = agent.get_latitude()
+                    drone.longitude = agent.get_longitude()
+                    break
         for agent in agents:
             agent.drones = drones
         agents.extend(drones)
@@ -67,7 +74,6 @@ def main():
             await agent.start(auto_register=True)
 
     asyncio.run(run_agents())
-
 
 if __name__ == "__main__":
     main()
