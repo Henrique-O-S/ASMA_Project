@@ -8,7 +8,7 @@ class DroneAgent(agent.Agent):
         self.capacity = capacity
         self.autonomy = autonomy
         self.velocity = velocity
-        self.number = self.extract_numeric_value(jid)
+        self.number = int(self.extract_numeric_value(jid))
         self.orders = orders
 
     async def setup(self):
@@ -26,8 +26,6 @@ class DroneAgent(agent.Agent):
         for char in value_str:
             if char.isdigit() or char == ".":
                 numeric_part += char
-            else:
-                break
         return float(numeric_part) if numeric_part else None
 
     def get_number(self):
