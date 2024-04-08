@@ -7,7 +7,7 @@ from agents.center import CenterAgent  # Importing the CenterAgent class
 from agents.drone import DroneAgent  # Importing the DroneAgent class
 from models.order import Order  # Importing the DroneAgent class
 
-from aux import extract_numeric_value
+from aux_funcs import extract_numeric_value
 
 def read_center_csv(filename):
     centers = []
