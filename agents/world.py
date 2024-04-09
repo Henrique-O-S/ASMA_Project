@@ -31,6 +31,6 @@ class WorldAgent(Agent):
         self.centers[1].latitude += 0.01
         print("gato")
 
-        markers_data = [{'lat': center.latitude,
-                         'lng': center.longitude} for center in self.centers]
+        markers_data = [{'name': center.name, 'lat': center.latitude,
+                        'lng': center.longitude} for center in self.centers]
         self.socketio.emit('map_updated', {'map_data': markers_data})

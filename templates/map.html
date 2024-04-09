@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>Real-time map</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js"></script>
 </head>
+
 <body>
     <div id="map" style="height: 600px;"></div>
 
@@ -19,20 +21,27 @@
         // Connect to the Socket.IO server
         var socket = io.connect('/');
 
-        // Listen for the 'map_updated' event
-        socket.on('map_updated', function(data) {
-            // Remove all existing markers
-            map.eachLayer(function(layer) {
-                if (layer instanceof L.Marker) {
-                    map.removeLayer(layer);
-                }
-            });
+        var markers = {};
 
-            // Add a new marker for each set of coordinates
-            data.map_data.forEach(function(coords) {
-                L.marker([coords.lat, coords.lng]).addTo(map);
+        // Listen for the 'map_updated' event
+        socket.on('map_updated', function (data) {
+            // Update each set of coordinates
+            data.map_data.forEach(function (coords) {
+                // If a marker for this name already exists and its position has changed, update its position
+                if (markers[coords.name] && !markers[coords.name].getLatLng().equals([coords.lat, coords.lng])) {
+                    markers[coords.name].setLatLng([coords.lat, coords.lng]);
+                    console.log("need to update");
+                }
+                // Otherwise, if a marker for this name does not exist, create a new marker and store it in the markers object
+                else if (!markers[coords.name]) {
+                    var marker = L.marker([coords.lat, coords.lng]).addTo(map);
+                    marker.bindPopup("<b>" + coords.name + "</b>");
+                    markers[coords.name] = marker;
+                    console.log("need to create");
+                }
             });
         });
     </script>
 </body>
+
 </html>

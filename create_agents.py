@@ -91,7 +91,7 @@ if __name__ == "__main__":
 
     # Start the Flask-SocketIO server in a separate thread
     server_thread = threading.Thread(
-    target=app.socketio.run, args=(app.app,))
+        target=app.socketio.run, args=(app.app,), kwargs={'port': 8000})
     server_thread.start()
 
 # Start the agents
@@ -99,4 +99,3 @@ app.main()
 
 # Wait for the server thread to finish
 server_thread.join()
-
