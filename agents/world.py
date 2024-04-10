@@ -15,9 +15,10 @@ class UpdatePointsBehaviour(CyclicBehaviour):
 
 
 class WorldAgent(Agent):
-    def __init__(self, jid, password, centers, restrictions, app, socketio):
+    def __init__(self, jid, password, centers, drones, restrictions, app, socketio):
         super().__init__(jid, password)
         self.centers = centers
+        self.drones = drones
         self.restrictions = restrictions
         self.app = app
         self.socketio = socketio
@@ -30,7 +31,13 @@ class WorldAgent(Agent):
     def update_visualization(self):
         self.centers[1].latitude += 0.01
         print("gato")
+        self.drones[0].longitude += 0.01
 
-        markers_data = [{'name': center.name, 'lat': center.latitude,
+        centers_data = [{'name': center.name, 'lat': center.latitude,
                         'lng': center.longitude} for center in self.centers]
-        self.socketio.emit('map_updated', {'map_data': markers_data})
+        orders_data = [{'name': order.order_id, 'lat': order.latitude, 'lng': order.longitude}
+                       for center in self.centers for order in center.orders]
+        drones_data = [{'name': "drone_" + str(drone.number), 'lat': drone.latitude, 'lng': drone.longitude,
+                        'orders': [order.order_id for order in drone.orders]} for drone in self.drones]
+        self.socketio.emit(
+            'map_updated', {'center_data': centers_data, 'order_data': orders_data, 'drone_data': drones_data})

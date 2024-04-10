@@ -71,6 +71,10 @@ class Application:
             drones = self.read_drone_csv(drone_file)
             for drone in drones:
                 drone.centers = map(lambda x: x.jid, centers)
+                for center in centers:
+                    if(drone.initialPos == center.center_id):
+                        drone.latitude = center.latitude
+                        drone.longitude = center.longitude
             for agent in agents:
                 agent.drones = map(lambda x: x.jid, drones)
             agents.extend(drones)
@@ -78,7 +82,7 @@ class Application:
             print(f"File {filename} not found.")
 
         self.world_agent = WorldAgent(
-            "world@localhost", "1234", centers, [], self.app, self.socketio)
+            "world@localhost", "1234", centers, drones, [], self.app, self.socketio)
         agents.append(self.world_agent)
 
         async def run_agents():
