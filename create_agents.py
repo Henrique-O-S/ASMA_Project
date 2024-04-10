@@ -69,8 +69,10 @@ class Application:
                 print(f"File {filename} not found.")
         if os.path.exists(drone_file):
             drones = self.read_drone_csv(drone_file)
+            for drone in drones:
+                drone.centers = map(lambda x: x.jid, centers)
             for agent in agents:
-                agent.drones = drones
+                agent.drones = map(lambda x: x.jid, drones)
             agents.extend(drones)
         else:
             print(f"File {filename} not found.")

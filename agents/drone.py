@@ -58,6 +58,8 @@ class DroneBehaviour(OneShotBehaviour):
         print(f"Drones orders:")
         for order in self.agent.orders:
             print(order)
+        for center in self.agent.centers:
+            print(center)
 
         # Here you can add your logic to process orders, e.g., assign them to delivery drivers, update statuses, etc.
 
