@@ -2,15 +2,20 @@ import asyncio
 from spade.agent import Agent
 from spade.behaviour import CyclicBehaviour
 
+# fps imports down bellow
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
 
 class UpdatePointsBehaviour(CyclicBehaviour):
-    def __init__(self, agent, interval):
+    def __init__(self, agent):
         super().__init__()
         self.agent = agent
-        self.interval = interval  # Interval in seconds between updates
-
+        self.interval = float(os.getenv('UPDATE_INTERVAL'))  # Interval in seconds between updates
     async def run(self):
-        self.agent.update_visualization()
+        self.agent.update_visualization(self.interval)
         await asyncio.sleep(self.interval)
 
 
@@ -26,12 +31,11 @@ class WorldAgent(Agent):
     async def setup(self):
         await super().setup()
         self.add_behaviour(UpdatePointsBehaviour(
-            self, interval=0.1))  # Add the cyclic behaviour
+            self))  # Add the cyclic behaviour
 
-    def update_visualization(self):
-        self.centers[1].latitude += 0.01
-        print("gato")
-        self.drones[0].longitude += 0.01
+    def update_visualization(self, INTERVAL):
+        self.centers[1].latitude += 0.1 * INTERVAL
+        self.drones[0].longitude += 0.1 * INTERVAL
 
         centers_data = [{'name': center.name, 'lat': center.latitude,
                         'lng': center.longitude} for center in self.centers]
