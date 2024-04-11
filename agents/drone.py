@@ -1,36 +1,42 @@
+import spade
+import re
 from spade import agent
 from spade.behaviour import OneShotBehaviour, CyclicBehaviour, PeriodicBehaviour, FSMBehaviour, State
 from spade.message import Message
 from spade.template import Template
+from aux_funcs import evaluate_proposals
+import json
 
-STATE_ONE = "[WaitAvailabilityCheck]"
-STATE_TWO = "[WaitInstructions]"
-STATE_THREE = "STATE_THREE"
+ASK_ORDERS = "[AskOrders]"
+AWAIT_ORDERS = "[AwaitOrders]"
+ANSWER_PROPOSALS = "[AnswerProposals]"
 
 class DroneAgent(agent.Agent):
-    def __init__(self, jid, password, capacity, autonomy, velocity, initialPos, orders=[]):
+    def __init__(self, jid, password, capacity, autonomy, velocity, initialPos, centers=[], orders=[]):
         super().__init__(jid, password)
         self.capacity = capacity
+        self.current_capacity = capacity
         self.autonomy = autonomy
         self.velocity = velocity
         self.initialPos = initialPos
         self.latitude = 0
         self.longitude = 0
         self.number = int(self.extract_numeric_value(jid))
+        self.centers = centers
         self.orders = orders
+        self.proposals=[]
 
     async def setup(self):
         print(
             f"Drone agent {self.number} started at ({self.latitude}, {self.longitude}) with capacity {self.capacity}, autonomy {self.autonomy} and velocity {self.velocity}")
         
         fsm = self.DroneFSMBehaviour()
-        fsm.add_state(name=STATE_ONE, state=self.StateOne(), initial=True)
-        fsm.add_state(name=STATE_TWO, state=self.StateTwo())
-        fsm.add_state(name=STATE_THREE, state=self.StateThree())
-        fsm.add_transition(source=STATE_ONE, dest=STATE_TWO)
-        fsm.add_transition(source=STATE_ONE, dest=STATE_ONE)
-        fsm.add_transition(source=STATE_TWO, dest=STATE_THREE)
-        fsm.add_transition(source=STATE_TWO, dest=STATE_ONE)
+        fsm.add_state(name=ASK_ORDERS, state=self.AskOrders(), initial=True)
+        fsm.add_state(name=AWAIT_ORDERS, state=self.AwaitOrders())
+        fsm.add_state(name=ANSWER_PROPOSALS, state=self.AnswerProposals())
+        fsm.add_transition(source=ASK_ORDERS, dest=AWAIT_ORDERS)
+        fsm.add_transition(source=AWAIT_ORDERS, dest=ANSWER_PROPOSALS)
+        fsm.add_transition(source=AWAIT_ORDERS, dest=ASK_ORDERS)
         self.add_behaviour(fsm)
 
         #b1 = self.ReceiveMessageBehaviour()
@@ -76,63 +82,68 @@ class DroneAgent(agent.Agent):
             print(f"Drone FSM finished at state {self.current_state}")
             await self.agent.stop()
 
-    class StateOne(State):
+    class AskOrders(State):
         async def run(self):
-            print("Waiting for availability check from the center")
-            msg = await self.receive(timeout=10)  # Wait for a message for 10 seconds
-            if msg:
-                if msg.body == "[AvailabilityCheck]":
-                    print("Received availability check from center")
-                    response_msg = Message(to=str(msg.sender))
-                    response_msg.body = "[Available]"
-                    await self.send(response_msg)
-                    self.set_next_state(STATE_TWO)
+            print(f"Drone agent asking orders:")
+
+            # Send message to drones asking for their availability
+            for center in self.agent.centers:
+                print(f"Asking orders from center {center}")
+                msg = spade.message.Message(to=str(center))
+                msg.body = "[AskOrders]-" + str(self.agent.current_capacity)
+                await self.send(msg)
+
+            self.set_next_state(AWAIT_ORDERS)
+
+    class AwaitOrders(State):
+        async def run(self):
+            print("Waiting for orders from the center")
+            proposals = []
+            for center in self.agent.centers:
+                msg = await self.receive(timeout=10)  # Wait for a message for 10 seconds
+                if msg:
+                    body_parts = msg.body.split("-")  # Split message body into parts
+                    if len(body_parts) == 2 and body_parts[0] == "[OrdersAssigned]":
+                        assigned_orders_str = body_parts[1]
+                        assigned_orders = json.loads(assigned_orders_str)  # Convert string representation of list to actual list
+                        print(f"Received orders from center {msg.sender}: {assigned_orders}")
+                        proposals.append((re.match(r"center(\d+)@localhost", (str(msg.sender))).group(1), assigned_orders))
+                    else:
+                        print("Received unrecognized message")
                 else:
-                    print("Received unexpected message")
-                    self.set_next_state(STATE_ONE)
+                    print("Did not receive any instructions after 10 seconds")
+                    break
+                    
+
+            if proposals:
+                self.agent.proposals = proposals
+                self.set_next_state(ANSWER_PROPOSALS)
             else:
-                print("Did not receive availability check within 10 seconds")
-                self.set_next_state(STATE_ONE)
+                self.set_next_state(ASK_ORDERS)
 
-    class StateTwo(State):
+    class AnswerProposals(State):
         async def run(self):
-            print("Waiting for instructions from the center")
-            msg = await self.receive(timeout=10)  # Wait for a message for 10 seconds
-            if msg:
-                print(f"Received instructions from center: {msg.body}")
-                # Process the instructions (e.g., execute delivery)
-                self.set_next_state(STATE_THREE)
+            print("Answering proposals")
+            # Evaluate and select the best proposal
+            best_proposal = evaluate_proposals(self.agent.proposals)
+            if best_proposal:
+                center_id, orders = best_proposal
+                print(f"Selected proposal from center {center_id}: {orders}")
+                # Send acceptance message to the selected center
+                reply = Message(to=("center"+center_id+"@localhost"))
+                reply.body = "[Accepted]"
+                await self.send(reply)
+
+                # Send rejection messages to other centers
+                for other_proposal in self.agent.proposals:
+                    if other_proposal[0] != center_id:
+                        print(f"Rejecting proposal from center {other_proposal[0]}")
+                        rejection_msg = Message(to=("center"+other_proposal[0]+"@localhost"))
+                        rejection_msg.body = "[Rejected]"
+                        await self.send(rejection_msg)
             else:
-                print("Did not receive any instructions after 10 seconds")
-                self.set_next_state(STATE_ONE)
+                print("No proposals received")
+                self.set_next_state(ASK_ORDERS)
 
-    class StateThree(State):
-        async def run(self):
-            print("Final state reached. Mission accomplished!")
-        
-    class ReceiveMessageBehaviour(CyclicBehaviour):
-        async def run(self):
-            print("Drone receive running")
-            msg = await self.receive(timeout=10)  # wait for a message for 10 seconds
-            if msg:
-                if msg.body == "[AvailabilityCheck]":
-                    print("Availability check received")
-                    reply = msg.make_reply()
-                    reply.body = "[Available]"
-                    await self.send(reply)
-            else:
-                print("Did not received any message after 10 seconds")
-                self.kill()
-
-
-class DroneBehaviour(OneShotBehaviour):
-    async def run(self):
-        print(f"Drones orders:")
-        for order in self.agent.orders:
-            print(order)
-        for center in self.agent.centers:
-            print(center)
-
-        # Here you can add your logic to process orders, e.g., assign them to delivery drivers, update statuses, etc.
-
-        await self.agent.stop()
+            self.agent.proposals = []
+            print("SUCESSO MALUCO")

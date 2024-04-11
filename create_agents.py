@@ -40,7 +40,7 @@ class Application:
                 orders.append(Order(order_id, order_latitude,
                               order_longitude, order_weight))
             centers.append(CenterAgent(center_id + "@localhost",
-                           "1234", center_id, latitude, longitude, weight, orders))
+                           "admin", center_id, latitude, longitude, weight, orders))
         return centers
 
     def read_drone_csv(self, filename):
@@ -50,7 +50,7 @@ class Application:
             next(reader)  # Skip the header
             for row in reader:
                 drone_id, capacity, autonomy, velocity, initialPos = row
-                drones.append(DroneAgent(drone_id + "@localhost", "1234", extract_numeric_value(
+                drones.append(DroneAgent(drone_id + "@localhost", "admin", extract_numeric_value(
                     capacity), extract_numeric_value(autonomy), extract_numeric_value(velocity), initialPos))
         return drones
 
@@ -81,8 +81,14 @@ class Application:
         else:
             print(f"File {filename} not found.")
 
+        # Pass drones jid to centers and vice versa
+        for agent in agents:
+            if isinstance(agent, DroneAgent):
+                agent.centers = [center.jid for center in centers]
+        
+
         self.world_agent = WorldAgent(
-            "world@localhost", "1234", centers, drones, [], self.app, self.socketio)
+            "world@localhost", "admin", centers, drones, [], self.app, self.socketio)
         agents.append(self.world_agent)
 
         async def run_agents():

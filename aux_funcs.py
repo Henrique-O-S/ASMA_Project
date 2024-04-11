@@ -39,3 +39,46 @@ def haversine_distance(lat1, lon1, lat2, lon2):
     distance = radius_earth * c
 
     return distance
+
+def assign_orders_to_drone(orders, drone_capacity, center_location):
+    orders_sorted_by_weight = sorted(orders, key=lambda x: x.weight, reverse=True)
+    orders_with_ratios = []
+
+    for order in orders_sorted_by_weight:
+        distance_to_center = haversine_distance(center_location[0], center_location[1], order.latitude, order.longitude)
+        weight_to_distance_ratio = order.weight * distance_to_center if distance_to_center != 0 else float('inf')
+        orders_with_ratios.append((order, weight_to_distance_ratio))
+
+    # Sort orders by weight-to-distance ratio in ascending order
+    orders_with_ratios.sort(key=lambda x: (x[0].weight, x[1]))
+
+    assigned_orders = []
+    current_capacity = 0
+
+    for order, _ in orders_with_ratios:
+        if current_capacity + order.weight <= drone_capacity:
+            assigned_orders.append(order)
+            current_capacity += order.weight
+        else:
+            break  # Stop assigning orders if drone's capacity is reached
+
+    return assigned_orders
+
+def evaluate_proposals(proposals):
+            best_proposal = None
+            max_orders = 0
+            max_weight = 0
+
+            for proposal in proposals:
+                center_id, orders = proposal
+                num_orders = len(orders)
+                total_weight = 0
+                for order in orders:
+                    total_weight += order["weight"]
+
+                if num_orders > max_orders or (num_orders == max_orders and total_weight > max_weight):
+                    max_orders = num_orders
+                    max_weight = total_weight
+                    best_proposal = (center_id, orders)
+
+            return best_proposal
