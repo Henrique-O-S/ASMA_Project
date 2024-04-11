@@ -126,6 +126,8 @@ class ProcessOrdersBehaviour(OneShotBehaviour):
         print(f"Center agent processing orders:")
         for order in self.agent.orders:
             print(order)
+        for drone in self.agent.drones:
+            print(drone)
 
         # Here you can add your logic to process orders, e.g., assign them to delivery drivers, update statuses, etc.
 
