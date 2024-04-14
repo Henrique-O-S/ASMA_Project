@@ -37,6 +37,7 @@ class DroneAgent(agent.Agent):
         fsm.add_transition(source=ASK_ORDERS, dest=AWAIT_ORDERS)
         fsm.add_transition(source=AWAIT_ORDERS, dest=ANSWER_PROPOSALS)
         fsm.add_transition(source=AWAIT_ORDERS, dest=ASK_ORDERS)
+        fsm.add_transition(source=ANSWER_PROPOSALS, dest=ASK_ORDERS)
         self.add_behaviour(fsm)
 
         #b1 = self.ReceiveMessageBehaviour()
@@ -129,6 +130,8 @@ class DroneAgent(agent.Agent):
             if best_proposal:
                 center_id, orders = best_proposal
                 print(f"Selected proposal from center {center_id}: {orders}")
+                # Add orders from the best proposal to self.orders
+                self.agent.orders.extend(orders)
                 # Send acceptance message to the selected center
                 reply = Message(to=("center"+center_id+"@localhost"))
                 reply.body = "[Accepted]"
@@ -146,4 +149,7 @@ class DroneAgent(agent.Agent):
                 self.set_next_state(ASK_ORDERS)
 
             self.agent.proposals = []
+            self.agent.orders = [] # Should be removed after the next step is implemented
             print("SUCESSO MALUCO")
+            self.set_next_state(ASK_ORDERS) # Should be substituted after the next step is implemented
+            
