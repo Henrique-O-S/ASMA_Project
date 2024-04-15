@@ -3,7 +3,7 @@ from spade.agent import Agent
 from spade.behaviour import OneShotBehaviour, PeriodicBehaviour, CyclicBehaviour, FSMBehaviour, State
 from spade.message import Message
 from spade.template import Template
-from aux_funcs import assign_orders_to_drone
+from aux_funcs import assign_orders_to_drone, clarke_wright_savings
 import datetime
 import json
 
