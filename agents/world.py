@@ -35,8 +35,8 @@ class WorldAgent(Agent):
             self))  # Add the cyclic behaviour
 
     def update_visualization(self, INTERVAL):
-        self.centers[1].latitude += 0.1 * INTERVAL
-        self.drones[0].longitude += 0.1 * INTERVAL
+        # self.centers[1].latitude += 0.1 * INTERVAL
+        # self.drones[0].longitude += 0.1 * INTERVAL
 
         centers_data = [{'name': center.name, 'lat': center.latitude,
                         'lng': center.longitude} for center in self.centers]

@@ -10,6 +10,7 @@ import json
 ASK_ORDERS = "[AskOrders]"
 AWAIT_ORDERS = "[AwaitOrders]"
 ANSWER_PROPOSALS = "[AnswerProposals]"
+DELIVERING_ORDERS = "[DeliveringOrders]"
 
 class DroneAgent(agent.Agent):
     def __init__(self, jid, password, capacity, autonomy, velocity, initialPos, centers=[], orders=[]):
@@ -31,6 +32,7 @@ class DroneAgent(agent.Agent):
             f"Drone agent {self.number} started at ({self.latitude}, {self.longitude}) with capacity {self.capacity}, autonomy {self.autonomy} and velocity {self.velocity}")
         
         fsm = self.DroneFSMBehaviour()
+        fsm.add_state(name=DELIVERING_ORDERS, state=self.DeliveringOrders()
         fsm.add_state(name=ASK_ORDERS, state=self.AskOrders(), initial=True)
         fsm.add_state(name=AWAIT_ORDERS, state=self.AwaitOrders())
         fsm.add_state(name=ANSWER_PROPOSALS, state=self.AnswerProposals())
@@ -38,6 +40,7 @@ class DroneAgent(agent.Agent):
         fsm.add_transition(source=AWAIT_ORDERS, dest=ANSWER_PROPOSALS)
         fsm.add_transition(source=AWAIT_ORDERS, dest=ASK_ORDERS)
         fsm.add_transition(source=ANSWER_PROPOSALS, dest=ASK_ORDERS)
+        fsm.add_transition(source=ANSWER_PROPOSALS, dest=DELIVERING_ORDERS)
         self.add_behaviour(fsm)
 
         #b1 = self.ReceiveMessageBehaviour()
@@ -149,7 +152,15 @@ class DroneAgent(agent.Agent):
                 self.set_next_state(ASK_ORDERS)
 
             self.agent.proposals = []
-            self.agent.orders = [] # Should be removed after the next step is implemented
+            # self.agent.orders = [] # Should be removed after the next step is implemented
             print("SUCESSO MALUCO")
-            self.set_next_state(ASK_ORDERS) # Should be substituted after the next step is implemented
+            self.set_next_state(DELIVERING_ORDERS) # Should be substituted after the next step is implemented
+    
+    class DeliveringOrders(State):
+        async def run(self):
+            print("Delivering orders")
             
+            for order in self.agent.orders:
+                print(f"Delivering order {order}")
+                
+            self.set_next_state(ASK_ORDERS)
