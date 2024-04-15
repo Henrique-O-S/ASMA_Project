@@ -1,10 +1,11 @@
+import asyncio
 import spade
 import re
 from spade import agent
 from spade.behaviour import OneShotBehaviour, CyclicBehaviour, PeriodicBehaviour, FSMBehaviour, State
 from spade.message import Message
 from spade.template import Template
-from aux_funcs import evaluate_proposals
+from aux_funcs import evaluate_proposals, haversine_distance, calculate_angle
 import json
 
 ASK_ORDERS = "[AskOrders]"
@@ -12,27 +13,28 @@ AWAIT_ORDERS = "[AwaitOrders]"
 ANSWER_PROPOSALS = "[AnswerProposals]"
 DELIVERING_ORDERS = "[DeliveringOrders]"
 
+
 class DroneAgent(agent.Agent):
-    def __init__(self, jid, password, capacity, autonomy, velocity, initialPos, centers=[], orders=[]):
+    def __init__(self, jid, password, capacity, autonomy, velocity, initialPos, centers=[]):
         super().__init__(jid, password)
         self.capacity = capacity
         self.current_capacity = capacity
         self.autonomy = autonomy
-        self.velocity = velocity
+        self.velocity = (velocity / 3600) / 2
         self.initialPos = initialPos
         self.latitude = 0
         self.longitude = 0
         self.number = int(self.extract_numeric_value(jid))
         self.centers = centers
-        self.orders = orders
-        self.proposals=[]
+        self.orders = []
+        self.proposals = []
 
     async def setup(self):
         print(
             f"Drone agent {self.number} started at ({self.latitude}, {self.longitude}) with capacity {self.capacity}, autonomy {self.autonomy} and velocity {self.velocity}")
-        
+
         fsm = self.DroneFSMBehaviour()
-        fsm.add_state(name=DELIVERING_ORDERS, state=self.DeliveringOrders()
+        fsm.add_state(name=DELIVERING_ORDERS, state=self.DeliveringOrders())
         fsm.add_state(name=ASK_ORDERS, state=self.AskOrders(), initial=True)
         fsm.add_state(name=AWAIT_ORDERS, state=self.AwaitOrders())
         fsm.add_state(name=ANSWER_PROPOSALS, state=self.AnswerProposals())
@@ -41,10 +43,11 @@ class DroneAgent(agent.Agent):
         fsm.add_transition(source=AWAIT_ORDERS, dest=ASK_ORDERS)
         fsm.add_transition(source=ANSWER_PROPOSALS, dest=ASK_ORDERS)
         fsm.add_transition(source=ANSWER_PROPOSALS, dest=DELIVERING_ORDERS)
+        fsm.add_transition(source=DELIVERING_ORDERS, dest=ASK_ORDERS)
         self.add_behaviour(fsm)
 
-        #b1 = self.ReceiveMessageBehaviour()
-        #self.add_behaviour(b1)
+        # b1 = self.ReceiveMessageBehaviour()
+        # self.add_behaviour(b1)
 
     def extract_numeric_value(self, value_str):
         """
@@ -56,6 +59,9 @@ class DroneAgent(agent.Agent):
             if char.isdigit() or char == ".":
                 numeric_part += char
         return float(numeric_part) if numeric_part else None
+
+    def next_pos(self, sin, cos):
+        return self.latitude + self.velocity * sin / 111.2, self.longitude + self.velocity * cos / 111.2
 
     def get_number(self):
         return self.number
@@ -71,13 +77,13 @@ class DroneAgent(agent.Agent):
 
     def get_orders(self):
         return self.orders
-    
+
     def get_latitude(self):
         return self.latitude
-    
+
     def get_longitude(self):
         return self.longitude
-    
+
     class DroneFSMBehaviour(FSMBehaviour):
         async def on_start(self):
             print(f"Drone FSM starting at initial state {self.current_state}")
@@ -104,20 +110,24 @@ class DroneAgent(agent.Agent):
             print("Waiting for orders from the center")
             proposals = []
             for center in self.agent.centers:
-                msg = await self.receive(timeout=10)  # Wait for a message for 10 seconds
+                # Wait for a message for 10 seconds
+                msg = await self.receive(timeout=10)
                 if msg:
-                    body_parts = msg.body.split("-")  # Split message body into parts
+                    # Split message body into parts
+                    body_parts = msg.body.split("-")
                     if len(body_parts) == 2 and body_parts[0] == "[OrdersAssigned]":
                         assigned_orders_str = body_parts[1]
-                        assigned_orders = json.loads(assigned_orders_str)  # Convert string representation of list to actual list
-                        print(f"Received orders from center {msg.sender}: {assigned_orders}")
-                        proposals.append((re.match(r"center(\d+)@localhost", (str(msg.sender))).group(1), assigned_orders))
+                        # Convert string representation of list to actual list
+                        assigned_orders = json.loads(assigned_orders_str)
+                        print(
+                            f"Received orders from center {msg.sender}: {assigned_orders}")
+                        proposals.append(
+                            (re.match(r"center(\d+)@localhost", (str(msg.sender))).group(1), assigned_orders))
                     else:
                         print("Received unrecognized message")
                 else:
                     print("Did not receive any instructions after 10 seconds")
                     break
-                    
 
             if proposals:
                 self.agent.proposals = proposals
@@ -135,6 +145,8 @@ class DroneAgent(agent.Agent):
                 print(f"Selected proposal from center {center_id}: {orders}")
                 # Add orders from the best proposal to self.orders
                 self.agent.orders.extend(orders)
+                with open("orders.txt", "a") as f:
+                    f.write(f"{self.agent.jid} : {self.agent.orders}\n")
                 # Send acceptance message to the selected center
                 reply = Message(to=("center"+center_id+"@localhost"))
                 reply.body = "[Accepted]"
@@ -143,8 +155,10 @@ class DroneAgent(agent.Agent):
                 # Send rejection messages to other centers
                 for other_proposal in self.agent.proposals:
                     if other_proposal[0] != center_id:
-                        print(f"Rejecting proposal from center {other_proposal[0]}")
-                        rejection_msg = Message(to=("center"+other_proposal[0]+"@localhost"))
+                        print(
+                            f"Rejecting proposal from center {other_proposal[0]}")
+                        rejection_msg = Message(
+                            to=("center"+other_proposal[0]+"@localhost"))
                         rejection_msg.body = "[Rejected]"
                         await self.send(rejection_msg)
             else:
@@ -154,13 +168,43 @@ class DroneAgent(agent.Agent):
             self.agent.proposals = []
             # self.agent.orders = [] # Should be removed after the next step is implemented
             print("SUCESSO MALUCO")
-            self.set_next_state(DELIVERING_ORDERS) # Should be substituted after the next step is implemented
-    
+            # Should be substituted after the next step is implemented
+            self.set_next_state(DELIVERING_ORDERS)
+
     class DeliveringOrders(State):
         async def run(self):
             print("Delivering orders")
-            
+
             for order in self.agent.orders:
                 print(f"Delivering order {order}")
-                
+
+                # Calculate the distance and angle to the delivery location
+                distance = haversine_distance(
+                    self.agent.latitude, self.agent.longitude, order["latitude"], order["longitude"])
+                sin, cos = calculate_angle(
+                    (self.agent.latitude, self.agent.longitude), (order["latitude"], order["longitude"]))
+
+                while distance > 0 and self.agent.autonomy > 0:
+                    # Move the drone towards the delivery location
+                    next_lat, next_long = self.agent.next_pos(sin, cos)
+                    future_movement = haversine_distance(
+                        self.agent.latitude, self.agent.longitude, next_lat, next_long)
+                    distance_travelled = min(distance, future_movement)
+
+                    # Update the drone's position
+                    self.agent.latitude += distance_travelled * sin / 111.2
+                    self.agent.longitude += distance_travelled * cos / 111.2
+
+                    # Decrease the drone's autonomy based on the distance travelled
+                    self.agent.autonomy -= distance_travelled
+
+                    # Recalculate the distance to the delivery location
+                    distance = haversine_distance(
+                        self.agent.latitude, self.agent.longitude, order["latitude"], order["longitude"])
+                    # Wait for a tick
+                    await asyncio.sleep(0.5)
+
+                print(f"Finished delivering order {order}")
+                self.agent.orders.remove(order)
+
             self.set_next_state(ASK_ORDERS)

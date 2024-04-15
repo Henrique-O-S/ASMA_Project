@@ -16,7 +16,7 @@ class UpdatePointsBehaviour(CyclicBehaviour):
         #self.interval = float(os.getenv('UPDATE_INTERVAL'))  # Interval in seconds between updates
         self.interval = 0.1
     async def run(self):
-        self.agent.update_visualization(self.interval)
+        self.agent.update_visualization()
         await asyncio.sleep(self.interval)
 
 
@@ -34,15 +34,13 @@ class WorldAgent(Agent):
         self.add_behaviour(UpdatePointsBehaviour(
             self))  # Add the cyclic behaviour
 
-    def update_visualization(self, INTERVAL):
-        # self.centers[1].latitude += 0.1 * INTERVAL
-        # self.drones[0].longitude += 0.1 * INTERVAL
+    def update_visualization(self):
 
         centers_data = [{'name': center.name, 'lat': center.latitude,
                         'lng': center.longitude} for center in self.centers]
         orders_data = [{'name': order.id, 'lat': order.latitude, 'lng': order.longitude}
                        for center in self.centers for order in center.orders]
         drones_data = [{'name': "drone_" + str(drone.number), 'lat': drone.latitude, 'lng': drone.longitude,
-                        'orders': [order.id for order in drone.orders]} for drone in self.drones]
+                        'orders': [order["id"] for order in drone.orders]} for drone in self.drones]
         self.socketio.emit(
             'map_updated', {'center_data': centers_data, 'order_data': orders_data, 'drone_data': drones_data})

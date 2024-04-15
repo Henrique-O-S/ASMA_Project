@@ -43,6 +43,17 @@ def haversine_distance(lat1, lon1, lat2, lon2):
     return distance
 
 
+def calculate_angle(pos1, pos2):
+    """
+    Calculate the angle between two points.
+    """
+    lat1, lon1 = pos1
+    lat2, lon2 = pos2
+    #return sin and cos
+    angle = atan2(lat2 - lat1, lon2 - lon1)
+    return sin(angle), cos(angle)
+
+
 def assign_orders_to_drone(orders, drone_capacity, center_location):
     orders_sorted_by_weight = sorted(
         orders, key=lambda x: x.weight, reverse=True)
