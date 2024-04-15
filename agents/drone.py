@@ -145,8 +145,6 @@ class DroneAgent(agent.Agent):
                 print(f"Selected proposal from center {center_id}: {orders}")
                 # Add orders from the best proposal to self.orders
                 self.agent.orders.extend(orders)
-                with open("orders.txt", "a") as f:
-                    f.write(f"{self.agent.jid} : {self.agent.orders}\n")
                 # Send acceptance message to the selected center
                 reply = Message(to=("center"+center_id+"@localhost"))
                 reply.body = "[Accepted]"
