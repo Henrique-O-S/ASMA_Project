@@ -54,7 +54,7 @@ def calculate_angle(pos1, pos2):
     return sin(angle), cos(angle)
 
 
-def assign_orders_to_drone(orders, drone_capacity, center_location):
+def assign_orders_to_drone(orders, drone_capacity, drone_autonomy, center_location):
     orders_sorted_by_weight = sorted(
         orders, key=lambda x: x.weight, reverse=True)
     orders_with_ratios = []
@@ -71,11 +71,20 @@ def assign_orders_to_drone(orders, drone_capacity, center_location):
 
     assigned_orders = []
     current_capacity = 0
+    current_autonomy = 0
 
     for order, _ in orders_with_ratios:
         if current_capacity + order.weight <= drone_capacity:
-            assigned_orders.append(order)
-            current_capacity += order.weight
+            if current_autonomy == 0:
+                if current_autonomy + haversine_distance(center_location[0], center_location[1], order.latitude, order.longitude) + haversine_distance(order.latitude, order.longitude, center_location[0], center_location[1]) <= drone_autonomy:
+                    assigned_orders.append(order)
+                    current_capacity += order.weight
+                    current_autonomy += haversine_distance(center_location[0], center_location[1], order.latitude, order.longitude)
+            else:
+                if current_autonomy + haversine_distance(assigned_orders[-1].latitude, assigned_orders[-1].longitude, order.latitude, order.longitude) + haversine_distance(order.latitude, order.longitude, center_location[0], center_location[1]) <= drone_autonomy:
+                    assigned_orders.append(order)
+                    current_capacity += order.weight
+                    current_autonomy += haversine_distance(assigned_orders[-1].latitude, assigned_orders[-1].longitude, order.latitude, order.longitude)
         else:
             break  # Stop assigning orders if drone's capacity is reached
 
@@ -120,18 +129,23 @@ def evaluate_proposals(proposals):
     max_orders = 0
     max_weight = 0
     for proposal in proposals:
+        print(proposal)
         center_id, orders_dict = proposal
         orders = orders_dict["orders"]
-        center_location = orders_dict["center"]
-        num_orders = len(orders)
-        total_weight = 0
-        for order in orders:
-            total_weight += order["weight"]
+        if orders != []:
+            center_location = orders_dict["center"]
+            orders, total_distance = sort_orders_by_shortest_path(orders, center_location)
+            print(f"Center {center_id}: {len(orders)} orders, {total_distance} km")
+            num_orders = len(orders)
+            total_weight = 0
+            for order in orders:
+                total_weight += order[3]
 
-        if num_orders > max_orders or (num_orders == max_orders and total_weight > max_weight):
-            max_orders = num_orders
-            max_weight = total_weight
-            best_proposal = (center_id, orders, center_location)
+            if num_orders > max_orders or (num_orders == max_orders and total_weight > max_weight):
+                max_orders = num_orders
+                max_weight = total_weight
+                best_proposal = (center_id, orders, center_location)
+        
 
     return best_proposal
 
@@ -144,13 +158,13 @@ def sort_orders_by_shortest_path(orders, center_location):
 
     order_locations = []
     for order in orders:
-        order_location = (order.get_id(), order.get_latitude(), order.get_longitude())
+        order_location = (order["id"], order["latitude"], order["longitude"], order["weight"])
         order_locations.append(order_location)
-        G.add_node(order.get_id(), location=(order_location[1], order_location[2]))
+        G.add_node(order["id"], location=(order_location[1], order_location[2]))
 
     for order in order_locations:
         G.add_edge('center', order[0], weight=haversine_distance(
-            center_location[0], center_location[1], order[1], order[2]))
+            center_location["latitude"], center_location["longitude"], order[1], order[2]))
 
     for i in range(len(order_locations)):
         for j in range(i + 1, len(order_locations)):
@@ -164,7 +178,9 @@ def sort_orders_by_shortest_path(orders, center_location):
 
     if tsp_path is None: return [], float('inf')
     
-    sorted_orders = [order_locations[i-1] for i in tsp_path[1:-1]]
+    sorted_orders = []
+    for i in tsp_path[1:-1]:
+        sorted_orders.append([order_location for order_location in order_locations if order_location[0] == i][0])
     total_distance = sum(G[tsp_path[i-1]][tsp_path[i]]['weight'] for i in range(1,len(tsp_path)))
 
     return sorted_orders, total_distance

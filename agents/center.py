@@ -52,20 +52,21 @@ class CenterAgent(Agent):
             print("Center agent awaiting drones availability")
             assigned_orders = []
             # wait for a message for 10 seconds
-            msg = await self.receive(timeout=10)
+            msg = await self.receive(timeout=2)
             if msg:
                 # Split message body into parts
                 body_parts = msg.body.split("-")
-                if len(body_parts) == 2:
-                    tag, capacity_info = body_parts
+                if len(body_parts) == 3:
+                    tag, capacity_info, autonomy_info = body_parts
                     if tag == "[AskOrders]":
                         current_capacity = int(float(capacity_info))
+                        current_autonomy = float(autonomy_info)
                         print(
                             f"Received drone's capacity. Current capacity: {current_capacity}")
 
                         # Assign orders to drones
                         assigned_orders = assign_orders_to_drone(
-                            self.agent.orders, current_capacity, (self.agent.latitude, self.agent.longitude))
+                            self.agent.orders, current_capacity, current_autonomy, (self.agent.latitude, self.agent.longitude))
 
                         # Assuming assigned_orders is a list of Order objects
                         assigned_orders_json = [
@@ -87,7 +88,7 @@ class CenterAgent(Agent):
 
                         print("Center agent awaiting drones response")
                         # wait for a message for 10 seconds
-                        response = await self.receive(timeout=10)
+                        response = await self.receive(timeout=2)
                         if response:
                             if response.body == "[Accepted]":
                                 print(

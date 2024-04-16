@@ -13,6 +13,7 @@ AWAIT_ORDERS = "[AwaitOrders]"
 ANSWER_PROPOSALS = "[AnswerProposals]"
 DELIVERING_ORDERS = "[DeliveringOrders]"
 MOVING_TO_CENTER = "[MovingToCenter]"
+MOVEMENT_MULTIPLIER = 1000
 
 
 class DroneAgent(agent.Agent):
@@ -22,7 +23,7 @@ class DroneAgent(agent.Agent):
         self.current_capacity = capacity
         self.autonomy = autonomy
         self.full_autonomy = autonomy
-        self.velocity = (velocity / 3600) / 2
+        self.velocity = ((velocity / 3600) / 2) * MOVEMENT_MULTIPLIER
         self.initialPos = initialPos
         self.latitude = 0
         self.longitude = 0
@@ -106,7 +107,7 @@ class DroneAgent(agent.Agent):
             for center in self.agent.centers:
                 print(f"Asking orders from center {center}")
                 msg = spade.message.Message(to=str(center))
-                msg.body = "[AskOrders]-" + str(self.agent.current_capacity)
+                msg.body = "[AskOrders]-" + str(self.agent.current_capacity) + "-" + str(self.agent.autonomy)
                 await self.send(msg)
 
             self.set_next_state(AWAIT_ORDERS)
@@ -117,7 +118,7 @@ class DroneAgent(agent.Agent):
             proposals = []
             for center in self.agent.centers:
                 # Wait for a message for 10 seconds
-                msg = await self.receive(timeout=10)
+                msg = await self.receive(timeout=2)
                 if msg:
                     # Split message body into parts
                     body_parts = msg.body.split("-")
@@ -184,9 +185,9 @@ class DroneAgent(agent.Agent):
 
                 # Calculate the distance and angle to the delivery location
                 distance = haversine_distance(
-                    self.agent.latitude, self.agent.longitude, order["latitude"], order["longitude"])
+                    self.agent.latitude, self.agent.longitude, order[1], order[2])
                 sin, cos = calculate_angle(
-                    (self.agent.latitude, self.agent.longitude), (order["latitude"], order["longitude"]))
+                    (self.agent.latitude, self.agent.longitude), (order[1], order[2]))
 
                 while distance > 0.1 and self.agent.autonomy > 0:
                     # Move the drone towards the delivery location
@@ -204,11 +205,15 @@ class DroneAgent(agent.Agent):
 
                     # Recalculate the distance to the delivery location
                     distance = haversine_distance(
-                        self.agent.latitude, self.agent.longitude, order["latitude"], order["longitude"])
+                        self.agent.latitude, self.agent.longitude, order[1], order[2])
 
                     print("distance is ", distance)
                     # Wait for a tick
                     await asyncio.sleep(0.5)
+
+                if self.agent.autonomy <= 0:
+                    print("Drone ran out of gas")
+                    #await self.agent.stop()
 
                 print(f"Finished delivering order {order}")
                 self.agent.orders.remove(order)
@@ -248,6 +253,10 @@ class DroneAgent(agent.Agent):
 
                 # Wait for a tick
                 await asyncio.sleep(0.5)
+
+            if self.agent.autonomy <= 0:
+                print("Drone ran out of gas")
+                #await self.agent.stop()
 
             print("Arrived at center")
             self.agent.autonomy = self.agent.full_autonomy
