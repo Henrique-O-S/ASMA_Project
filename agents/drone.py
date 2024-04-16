@@ -5,7 +5,7 @@ from spade import agent
 from spade.behaviour import OneShotBehaviour, CyclicBehaviour, PeriodicBehaviour, FSMBehaviour, State
 from spade.message import Message
 from spade.template import Template
-from aux_funcs import evaluate_proposals, haversine_distance, calculate_angle
+from aux_funcs import evaluate_proposals, haversine_distance, calculate_angle, sort_orders_by_shortest_path
 import json
 
 ASK_ORDERS = "[AskOrders]"
@@ -253,4 +253,5 @@ class DroneAgent(agent.Agent):
             self.agent.autonomy = self.agent.full_autonomy
             self.agent.orders.extend(self.agent.future_orders)
             self.agent.future_orders = []
+            #self.agent.orders, _ = sort_orders_by_shortest_path(self.agent.orders, (self.agent.latitude, self.agent.longitude))
             self.set_next_state(DELIVERING_ORDERS)
