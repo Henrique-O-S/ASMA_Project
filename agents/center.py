@@ -100,6 +100,7 @@ class CenterAgent(Agent):
                                             f"Order {assigned_order.id} not found in stock.")
                                     else:
                                         # Remove the order with the specified ID from self.agent.orders
+                                        print("gato")
                                         self.agent.orders = [
                                             order for order in self.agent.orders if order.id != assigned_order.id]
                             elif response.body == "[Rejected]":
