@@ -37,7 +37,7 @@ class WorldAgent(Agent):
     def update_visualization(self):
 
         centers_data = [{'name': center.name, 'lat': center.latitude,
-                        'lng': center.longitude} for center in self.centers]
+                        'lng': center.longitude, 'num_orders': len(center.orders)} for center in self.centers]
         orders_data = [{'name': order.id, 'lat': order.latitude, 'lng': order.longitude}
                        for center in self.centers for order in center.orders]
         drones_data = [{'name': "drone_" + str(drone.number), 'lat': drone.latitude, 'lng': drone.longitude,

@@ -119,9 +119,10 @@ def evaluate_proposals(proposals):
     best_proposal = None
     max_orders = 0
     max_weight = 0
-
     for proposal in proposals:
-        center_id, orders = proposal
+        center_id, orders_dict = proposal
+        orders = orders_dict["orders"]
+        center_location = orders_dict["center"]
         num_orders = len(orders)
         total_weight = 0
         for order in orders:
@@ -130,7 +131,7 @@ def evaluate_proposals(proposals):
         if num_orders > max_orders or (num_orders == max_orders and total_weight > max_weight):
             max_orders = num_orders
             max_weight = total_weight
-            best_proposal = (center_id, orders)
+            best_proposal = (center_id, orders, center_location)
 
     return best_proposal
 
