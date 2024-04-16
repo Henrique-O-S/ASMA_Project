@@ -32,7 +32,7 @@ class DroneAgent(agent.Agent):
             f"Drone agent {self.number} started at ({self.latitude}, {self.longitude}) with capacity {self.capacity}, autonomy {self.autonomy} and velocity {self.velocity}")
         
         fsm = self.DroneFSMBehaviour()
-        fsm.add_state(name=DELIVERING_ORDERS, state=self.DeliveringOrders()
+        fsm.add_state(name=DELIVERING_ORDERS, state=self.DeliveringOrders())
         fsm.add_state(name=ASK_ORDERS, state=self.AskOrders(), initial=True)
         fsm.add_state(name=AWAIT_ORDERS, state=self.AwaitOrders())
         fsm.add_state(name=ANSWER_PROPOSALS, state=self.AnswerProposals())

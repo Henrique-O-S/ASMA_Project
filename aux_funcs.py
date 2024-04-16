@@ -1,5 +1,5 @@
 from math import radians, sin, cos, sqrt, atan2
-
+import networkx as nx
 
 def extract_numeric_value(value_str):
     """
@@ -122,3 +122,38 @@ def evaluate_proposals(proposals):
             best_proposal = (center_id, orders)
 
     return best_proposal
+
+
+# orders = [order1, order2, order3, ...]
+# center_location = (latitude, longitude)
+def sort_orders_by_shortest_path(orders, center_location):
+    G = nx.Graph()
+    G.add_node('center', location=center_location)
+
+    order_locations = []
+    for order in orders:
+        order_location = (order.get_id(), order.get_latitude(), order.get_longitude())
+        order_locations.append(order_location)
+        G.add_node(order.get_id(), location=(order_location[1], order_location[2]))
+
+    for order in order_locations:
+        G.add_edge('center', order[0], weight=haversine_distance(
+            center_location[0], center_location[1], order[1], order[2]))
+
+    for i in range(len(order_locations)):
+        for j in range(i + 1, len(order_locations)):
+            distance = haversine_distance(
+                order_locations[i][1], order_locations[i][2],
+                order_locations[j][1], order_locations[j][2]
+            )
+            G.add_edge(order_locations[i][0], order_locations[j][0], weight=distance)
+
+    tsp_path = nx.approximation.traveling_salesman_problem(G, cycle=True)
+
+    if tsp_path is None: return [], float('inf')
+    
+    sorted_orders = [order_locations[i-1] for i in tsp_path[1:-1]]
+    total_distance = sum(G[tsp_path[i-1]][tsp_path[i]]['weight'] for i in range(1,len(tsp_path)))
+
+    return sorted_orders, total_distance
+
