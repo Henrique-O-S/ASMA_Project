@@ -179,7 +179,7 @@ class DroneAgent(agent.Agent):
         async def run(self):
             print("Delivering ", len(self.agent.orders), " orders")
 
-            for order in list(self.agent.orders):
+            for order in list(self.agent.orders): #iterate trough a copy of the list. NECESSARY!!
                 print(f"Delivering order {order}")
 
                 # Calculate the distance and angle to the delivery location

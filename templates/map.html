@@ -56,8 +56,8 @@
             // Update each set of coordinates
             data.center_data.forEach(function (center) {
                 // If a marker for this name already exists and its position has changed, update its position
-                if (markers[center.name] && !markers[center.name].getLatLng().equals([center.lat, center.lng])) {
-                    markers[center.name].setLatLng([center.lat, center.lng]);
+                if (markers[center.name]) {
+                    markers[center.name].bindPopup("<b>" + center.name + "</b><br>" + center.num_orders + " Orders");
                     console.log("need to update");
                 }
                 // Otherwise, if a marker for this name does not exist, create a new marker and store it in the markers object
