@@ -13,7 +13,6 @@ AWAIT_ORDERS = "[AwaitOrders]"
 ANSWER_PROPOSALS = "[AnswerProposals]"
 DELIVERING_ORDERS = "[DeliveringOrders]"
 MOVING_TO_CENTER = "[MovingToCenter]"
-MOVEMENT_MULTIPLIER = 1000
 
 
 class DroneAgent(agent.Agent):
@@ -23,7 +22,7 @@ class DroneAgent(agent.Agent):
         self.current_capacity = capacity
         self.autonomy = autonomy
         self.full_autonomy = autonomy
-        self.velocity = ((velocity / 3600) / 2) * MOVEMENT_MULTIPLIER
+        self.velocity = ((velocity / 3600) / 2)
         self.initialPos = initialPos
         self.latitude = 0
         self.longitude = 0

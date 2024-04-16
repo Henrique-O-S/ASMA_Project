@@ -3,8 +3,6 @@ from spade.agent import Agent
 from spade.behaviour import CyclicBehaviour
 import time
 
-MOVEMENT_MULTIPLIER = 1000
-
 class UpdatePointsBehaviour(CyclicBehaviour):
     def __init__(self, agent):
         super().__init__()
@@ -45,7 +43,7 @@ class WorldAgent(Agent):
         if all(len(center.orders) == 0 for center in self.centers) and all(len(drone.orders) == 0 for drone in self.drones):
             self.end_time = time.time()
             delivery_time = self.end_time - self.start_time
-            print(f"All orders delivered in {delivery_time*MOVEMENT_MULTIPLIER} seconds.")
+            print(f"All orders delivered in {delivery_time} seconds.")
             print("Simulation finished.")
             self.stop()
 
