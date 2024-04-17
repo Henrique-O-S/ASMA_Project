@@ -199,21 +199,24 @@ class DroneAgent(agent.Agent):
                 print(f"Delivering order {order}")
 
                 # Calculate the distance and angle to the delivery location
-                distance = haversine_distance(
-                    self.agent.latitude, self.agent.longitude, order[1], order[2])
-                angle = calculate_angle(
-                    (self.agent.latitude, self.agent.longitude), (order[1], order[2]))
 
-                while distance > 0.1 and self.agent.autonomy > 0:
+                while self.agent.autonomy > 0:
                     # Move the drone towards the center
+                    angle = calculate_angle(
+                        (self.agent.latitude, self.agent.longitude), (order[1], order[2]))
                     next_lat, next_long = self.agent.next_pos(angle)
                     future_movement = haversine_distance(
                         self.agent.latitude, self.agent.longitude, next_lat, next_long)
+                    distance = haversine_distance(
+                        self.agent.latitude, self.agent.longitude, order[1], order[2])
                     distance_travelled = 0
                     if future_movement > distance:
                         self.agent.latitude = order[1]
                         self.agent.longitude = order[2]
                         distance_travelled = distance
+                        self.agent.autonomy -= distance_travelled
+                        break
+
                     else:
                         self.agent.latitude = next_lat
                         self.agent.longitude = next_long
@@ -248,21 +251,23 @@ class DroneAgent(agent.Agent):
             print("Moving to center")
 
             # Calculate the distance and angle to the center
-            distance = haversine_distance(
-                self.agent.latitude, self.agent.longitude, self.agent.nextCenter["latitude"], self.agent.nextCenter["longitude"])
-            angle = calculate_angle(
-                (self.agent.latitude, self.agent.longitude), (self.agent.nextCenter["latitude"], self.agent.nextCenter["longitude"]))
 
-            while distance > 0.1 and self.agent.autonomy > 0:
+            while self.agent.autonomy > 0:
                 # Move the drone towards the center
+                angle = calculate_angle(
+                    (self.agent.latitude, self.agent.longitude), (self.agent.nextCenter["latitude"], self.agent.nextCenter["longitude"]))
                 next_lat, next_long = self.agent.next_pos(angle)
                 future_movement = haversine_distance(
                     self.agent.latitude, self.agent.longitude, next_lat, next_long)
+                distance = haversine_distance(
+                    self.agent.latitude, self.agent.longitude, self.agent.nextCenter["latitude"], self.agent.nextCenter["longitude"])
                 distance_travelled = 0
                 if future_movement > distance:
                     self.agent.latitude = self.agent.nextCenter["latitude"]
                     self.agent.longitude = self.agent.nextCenter["longitude"]
                     distance_travelled = distance
+                    self.agent.autonomy -= distance_travelled
+                    break
                 else:
                     self.agent.latitude = next_lat
                     self.agent.longitude = next_long
