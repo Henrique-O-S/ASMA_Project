@@ -285,7 +285,7 @@ class DroneAgent(agent.Agent):
                 # Wait for a tick
                 await asyncio.sleep(0.125)
 
-            if self.agent.autonomy < 0:
+            if self.agent.autonomy <= 0:
                 with open("output.txt", "a") as f:
                     f.write(f"Drone {self.agent.number} ran out of gas\n")
                 print("Drone ran out of gas ", self.agent.autonomy)
