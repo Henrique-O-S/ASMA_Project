@@ -23,7 +23,7 @@ class DroneAgent(agent.Agent):
         self.current_capacity = capacity
         self.autonomy = autonomy
         self.full_autonomy = autonomy
-        self.velocity = ((velocity / 3600) / 2)
+        self.velocity = ((velocity / 3600) / 8)
         self.initialPos = initialPos
         self.latitude = 0
         self.longitude = 0
@@ -205,28 +205,31 @@ class DroneAgent(agent.Agent):
                     (self.agent.latitude, self.agent.longitude), (order[1], order[2]))
 
                 while distance > 0.1 and self.agent.autonomy > 0:
-                    # Move the drone towards the delivery location
+                    # Move the drone towards the center
                     next_lat, next_long = self.agent.next_pos(angle)
                     future_movement = haversine_distance(
                         self.agent.latitude, self.agent.longitude, next_lat, next_long)
-                    distance_travelled = min(distance, future_movement)
-
-                    # Update the drone's position
-                    self.agent.latitude += distance_travelled * \
-                        sin(angle) / 111.2
-                    self.agent.longitude += distance_travelled * \
-                        cos(angle) / 111.2
+                    distance_travelled = 0
+                    if future_movement > distance:
+                        self.agent.latitude = order[1]
+                        self.agent.longitude = order[2]
+                        distance_travelled = distance
+                    else:
+                        self.agent.latitude = next_lat
+                        self.agent.longitude = next_long
+                        distance_travelled = future_movement
 
                     # Decrease the drone's autonomy based on the distance travelled
                     self.agent.autonomy -= distance_travelled
 
-                    # Recalculate the distance to the delivery location
+                    # Recalculate the distance to the center
                     distance = haversine_distance(
                         self.agent.latitude, self.agent.longitude, order[1], order[2])
 
-                    print("distance is ", distance)
+                    print(self.agent.jid, " distance is ", distance)
+
                     # Wait for a tick
-                    await asyncio.sleep(0.5)
+                    await asyncio.sleep(0.125)
 
                 if self.agent.autonomy <= 0:
                     with open("output.txt", "a") as f:
@@ -255,11 +258,15 @@ class DroneAgent(agent.Agent):
                 next_lat, next_long = self.agent.next_pos(angle)
                 future_movement = haversine_distance(
                     self.agent.latitude, self.agent.longitude, next_lat, next_long)
-                distance_travelled = min(distance, future_movement)
-
-                # Update the drone's position
-                self.agent.latitude += distance_travelled * sin(angle) / 111.2
-                self.agent.longitude += distance_travelled * cos(angle) / 111.2
+                distance_travelled = 0
+                if future_movement > distance:
+                    self.agent.latitude = self.agent.nextCenter["latitude"]
+                    self.agent.longitude = self.agent.nextCenter["longitude"]
+                    distance_travelled = distance
+                else:
+                    self.agent.latitude = next_lat
+                    self.agent.longitude = next_long
+                    distance_travelled = future_movement
 
                 # Decrease the drone's autonomy based on the distance travelled
                 self.agent.autonomy -= distance_travelled
@@ -268,15 +275,15 @@ class DroneAgent(agent.Agent):
                 distance = haversine_distance(
                     self.agent.latitude, self.agent.longitude, self.agent.nextCenter["latitude"], self.agent.nextCenter["longitude"])
 
-                print("distance to center is ", distance)
+                print(self.agent.jid, " distance to center is ", distance)
 
                 # Wait for a tick
-                await asyncio.sleep(0.5)
+                await asyncio.sleep(0.125)
 
-            if self.agent.autonomy <= 0:
+            if self.agent.autonomy < 0:
                 with open("output.txt", "a") as f:
                     f.write(f"Drone {self.agent.number} ran out of gas\n")
-                print("Drone ran out of gas")
+                print("Drone ran out of gas ", self.agent.autonomy)
                 # await self.agent.stop()
 
             print("Arrived at center")
