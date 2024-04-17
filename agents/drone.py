@@ -225,12 +225,6 @@ class DroneAgent(agent.Agent):
                     # Decrease the drone's autonomy based on the distance travelled
                     self.agent.autonomy -= distance_travelled
 
-                    # Recalculate the distance to the center
-                    distance = haversine_distance(
-                        self.agent.latitude, self.agent.longitude, order[1], order[2])
-
-                    print(self.agent.jid, " distance is ", distance)
-
                     # Wait for a tick
                     await asyncio.sleep(0.125)
 
@@ -275,12 +269,6 @@ class DroneAgent(agent.Agent):
 
                 # Decrease the drone's autonomy based on the distance travelled
                 self.agent.autonomy -= distance_travelled
-
-                # Recalculate the distance to the center
-                distance = haversine_distance(
-                    self.agent.latitude, self.agent.longitude, self.agent.nextCenter["latitude"], self.agent.nextCenter["longitude"])
-
-                print(self.agent.jid, " distance to center is ", distance)
 
                 # Wait for a tick
                 await asyncio.sleep(0.125)
