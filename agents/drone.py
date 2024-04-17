@@ -119,7 +119,7 @@ class DroneAgent(agent.Agent):
                 msg = spade.message.Message(to=str(center))
                 msg.body = "[AskOrders]-" + \
                     str(self.agent.current_capacity) + \
-                    "-" + str(self.agent.autonomy)
+                    "-" + str(self.agent.full_autonomy)
                 await self.send(msg)
 
             self.set_next_state(AWAIT_ORDERS)
