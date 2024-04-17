@@ -49,9 +49,7 @@ def calculate_angle(pos1, pos2):
     """
     lat1, lon1 = pos1
     lat2, lon2 = pos2
-    #return sin and cos
-    angle = atan2(lat2 - lat1, lon2 - lon1)
-    return sin(angle), cos(angle)
+    return atan2(lat2 - lat1, lon2 - lon1)
 
 
 def assign_orders_to_drone(orders, drone_capacity, drone_autonomy, center_location):

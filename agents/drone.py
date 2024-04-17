@@ -7,6 +7,7 @@ from spade.message import Message
 from spade.template import Template
 from aux_funcs import evaluate_proposals, haversine_distance, calculate_angle, sort_orders_by_shortest_path
 import json
+from math import sin, cos, radians
 
 ASK_ORDERS = "[AskOrders]"
 AWAIT_ORDERS = "[AwaitOrders]"
@@ -66,8 +67,18 @@ class DroneAgent(agent.Agent):
                 numeric_part += char
         return float(numeric_part) if numeric_part else None
 
-    def next_pos(self, sin, cos):
-        return self.latitude + self.velocity * sin / 111.2, self.longitude + self.velocity * cos / 111.2
+    def next_pos(self, angle):
+        # Convert latitude from degrees to radians
+        lat1 = radians(self.latitude)
+
+        # Calculate the new latitude
+        new_latitude = self.latitude + self.velocity * sin(angle) / 111.2
+
+        # Calculate the new longitude
+        new_longitude = self.longitude + self.velocity * \
+            cos(angle) / (111.2 * cos(lat1))
+
+        return new_latitude, new_longitude
 
     def get_number(self):
         return self.number
@@ -106,7 +117,9 @@ class DroneAgent(agent.Agent):
             for center in self.agent.centers:
                 print(f"Asking orders from center {center}")
                 msg = spade.message.Message(to=str(center))
-                msg.body = "[AskOrders]-" + str(self.agent.current_capacity) + "-" + str(self.agent.autonomy)
+                msg.body = "[AskOrders]-" + \
+                    str(self.agent.current_capacity) + \
+                    "-" + str(self.agent.autonomy)
                 await self.send(msg)
 
             self.set_next_state(AWAIT_ORDERS)
@@ -126,7 +139,7 @@ class DroneAgent(agent.Agent):
                         # Convert string representation of JSON to actual dictionary
                         assigned_orders_dict = json.loads(assigned_orders_str)
                         print(
-                            f"Received orders from center {msg.sender}: {assigned_orders_dict['orders']}")
+                            f"[DRONE{self.agent.jid}]Received orders from center {msg.sender}: {assigned_orders_dict['orders']}")
                         proposals.append(
                             (re.match(r"center(\d+)@localhost", (str(msg.sender))).group(1), assigned_orders_dict))
                     else:
@@ -168,7 +181,9 @@ class DroneAgent(agent.Agent):
                         await self.send(rejection_msg)
             else:
                 print("No proposals received")
+                self.agent.proposals = []
                 self.set_next_state(ASK_ORDERS)
+                return
 
             self.agent.proposals = []
             print("SUCESSO MALUCO")
@@ -179,25 +194,28 @@ class DroneAgent(agent.Agent):
         async def run(self):
             print("Delivering ", len(self.agent.orders), " orders")
 
-            for order in list(self.agent.orders): #iterate trough a copy of the list. NECESSARY!!
+            # iterate trough a copy of the list. NECESSARY!!
+            for order in list(self.agent.orders):
                 print(f"Delivering order {order}")
 
                 # Calculate the distance and angle to the delivery location
                 distance = haversine_distance(
                     self.agent.latitude, self.agent.longitude, order[1], order[2])
-                sin, cos = calculate_angle(
+                angle = calculate_angle(
                     (self.agent.latitude, self.agent.longitude), (order[1], order[2]))
 
                 while distance > 0.1 and self.agent.autonomy > 0:
                     # Move the drone towards the delivery location
-                    next_lat, next_long = self.agent.next_pos(sin, cos)
+                    next_lat, next_long = self.agent.next_pos(angle)
                     future_movement = haversine_distance(
                         self.agent.latitude, self.agent.longitude, next_lat, next_long)
                     distance_travelled = min(distance, future_movement)
 
                     # Update the drone's position
-                    self.agent.latitude += distance_travelled * sin / 111.2
-                    self.agent.longitude += distance_travelled * cos / 111.2
+                    self.agent.latitude += distance_travelled * \
+                        sin(angle) / 111.2
+                    self.agent.longitude += distance_travelled * \
+                        cos(angle) / 111.2
 
                     # Decrease the drone's autonomy based on the distance travelled
                     self.agent.autonomy -= distance_travelled
@@ -211,12 +229,14 @@ class DroneAgent(agent.Agent):
                     await asyncio.sleep(0.5)
 
                 if self.agent.autonomy <= 0:
+                    with open("output.txt", "a") as f:
+                        f.write(f"Drone {self.agent.number} ran out of gas\n")
                     print("Drone ran out of gas")
-                    #await self.agent.stop()
+                    # await self.agent.stop()
 
-                print(f"Finished delivering order {order}")
+                print(f"[{self.agent.jid}]Finished delivering order {order}")
                 self.agent.orders.remove(order)
-            #self.agent.orders = []
+            # self.agent.orders = []
             self.set_next_state(ASK_ORDERS)
 
     class MovingToCenter(State):
@@ -227,19 +247,19 @@ class DroneAgent(agent.Agent):
             # Calculate the distance and angle to the center
             distance = haversine_distance(
                 self.agent.latitude, self.agent.longitude, self.agent.nextCenter["latitude"], self.agent.nextCenter["longitude"])
-            sin, cos = calculate_angle(
+            angle = calculate_angle(
                 (self.agent.latitude, self.agent.longitude), (self.agent.nextCenter["latitude"], self.agent.nextCenter["longitude"]))
 
             while distance > 0.1 and self.agent.autonomy > 0:
                 # Move the drone towards the center
-                next_lat, next_long = self.agent.next_pos(sin, cos)
+                next_lat, next_long = self.agent.next_pos(angle)
                 future_movement = haversine_distance(
                     self.agent.latitude, self.agent.longitude, next_lat, next_long)
                 distance_travelled = min(distance, future_movement)
 
                 # Update the drone's position
-                self.agent.latitude += distance_travelled * sin / 111.2
-                self.agent.longitude += distance_travelled * cos / 111.2
+                self.agent.latitude += distance_travelled * sin(angle) / 111.2
+                self.agent.longitude += distance_travelled * cos(angle) / 111.2
 
                 # Decrease the drone's autonomy based on the distance travelled
                 self.agent.autonomy -= distance_travelled
@@ -254,12 +274,14 @@ class DroneAgent(agent.Agent):
                 await asyncio.sleep(0.5)
 
             if self.agent.autonomy <= 0:
+                with open("output.txt", "a") as f:
+                    f.write(f"Drone {self.agent.number} ran out of gas\n")
                 print("Drone ran out of gas")
-                #await self.agent.stop()
+                # await self.agent.stop()
 
             print("Arrived at center")
             self.agent.autonomy = self.agent.full_autonomy
             self.agent.orders.extend(self.agent.future_orders)
             self.agent.future_orders = []
-            #self.agent.orders, _ = sort_orders_by_shortest_path(self.agent.orders, (self.agent.latitude, self.agent.longitude))
+            # self.agent.orders, _ = sort_orders_by_shortest_path(self.agent.orders, (self.agent.latitude, self.agent.longitude))
             self.set_next_state(DELIVERING_ORDERS)
