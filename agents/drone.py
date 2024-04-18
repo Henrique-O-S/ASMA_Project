@@ -56,6 +56,11 @@ class DroneAgent(agent.Agent):
         # b1 = self.ReceiveMessageBehaviour()
         # self.add_behaviour(b1)
 
+        stop_behaviour = self.StopBehaviour()
+        template = spade.template.Template()
+        template.body = "stop"
+        self.add_behaviour(stop_behaviour, template)
+
     def extract_numeric_value(self, value_str):
         """
         Extracts the numeric value from a string containing numeric value followed by units.
@@ -285,3 +290,12 @@ class DroneAgent(agent.Agent):
             self.agent.future_orders = []
             # self.agent.orders, _ = sort_orders_by_shortest_path(self.agent.orders, (self.agent.latitude, self.agent.longitude))
             self.set_next_state(DELIVERING_ORDERS)
+
+    class StopBehaviour(spade.behaviour.CyclicBehaviour):
+        async def run(self):
+            msg = await self.receive(timeout=10)
+            if msg:
+                if msg.body == "stop":
+                    # print stop the drone with the id x
+                    print(f"Received stop message. Stopping drone {self.agent.jid} ...")
+                    await self.agent.stop()

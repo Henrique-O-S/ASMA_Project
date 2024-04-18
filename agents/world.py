@@ -1,7 +1,10 @@
 import asyncio
 from spade.agent import Agent
 from spade.behaviour import CyclicBehaviour
+from spade.message import Message
 import time
+import requests
+import os
 
 class UpdatePointsBehaviour(CyclicBehaviour):
     def __init__(self, agent):
@@ -45,7 +48,28 @@ class WorldAgent(Agent):
             delivery_time = self.end_time - self.start_time
             print(f"All orders delivered in {delivery_time} seconds.")
             print("Simulation finished.")
+            self.signal_end()
             self.stop()
+
+    def signal_end(self):
+        self.socketio.emit('simulation_end', {})
+        print("Simulation ended.")
+
+        # response = requests.post('http://localhost:8000/shutdown')
+        # print('Response from server:', response.text)
+
+        # msg = Message()
+        # msg.body = "stop"
+
+        # for center in self.centers:
+        #     msg.to = str(center.jid)
+        #     self.send(msg)
+
+        # for drone in self.drones:
+        #     msg.to = str(drone.jid)
+        #     self.send(msg)
+
+        os._exit(0)
 
 
 

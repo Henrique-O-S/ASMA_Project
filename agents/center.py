@@ -29,6 +29,11 @@ class CenterAgent(Agent):
         b2 = self.AwaitDrones()
         self.add_behaviour(b2)
 
+        stop_behaviour = self.StopBehaviour()
+        template = spade.template.Template()
+        template.body = "stop"
+        self.add_behaviour(stop_behaviour, template)
+
     def get_center_id(self):
         return self.center_id
 
@@ -127,6 +132,14 @@ class CenterAgent(Agent):
             # Here you can add your logic to process orders, e.g., assign them to delivery drivers, update statuses, etc.
 
             # await self.agent.stop()
+
+    class StopBehaviour(spade.behaviour.CyclicBehaviour):
+        async def run(self):
+            msg = await self.receive(timeout=10)
+            if msg:
+                if msg.body == "stop":
+                    print(f"Received stop message. Stopping center {self.agent.jid} ...")
+                    await self.agent.stop()
 
 
 if __name__ == "__main__":

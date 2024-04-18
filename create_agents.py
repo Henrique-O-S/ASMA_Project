@@ -2,7 +2,7 @@ import csv
 import asyncio
 import os
 import threading
-from flask import Flask, render_template
+from flask import Flask, render_template, request
 from flask_socketio import SocketIO
 from flask_cors import CORS
 from spade.agent import Agent
@@ -23,6 +23,14 @@ class Application:
         @self.app.route('/')
         def index():
             return render_template('map.html')
+        
+        @self.app.route('/shutdown', methods=['POST'])
+        def shutdown():
+            func = request.environ.get('werkzeug.server.shutdown')
+            if func is None:
+                raise RuntimeError('Not running with the Werkzeug Server')
+            func()
+            return 'Server shutting down...'
 
     def read_center_csv(self, filename):
         centers = []
