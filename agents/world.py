@@ -54,21 +54,6 @@ class WorldAgent(Agent):
     def signal_end(self):
         self.socketio.emit('simulation_end', {})
         print("Simulation ended.")
-
-        # response = requests.post('http://localhost:8000/shutdown')
-        # print('Response from server:', response.text)
-
-        # msg = Message()
-        # msg.body = "stop"
-
-        # for center in self.centers:
-        #     msg.to = str(center.jid)
-        #     self.send(msg)
-
-        # for drone in self.drones:
-        #     msg.to = str(drone.jid)
-        #     self.send(msg)
-
         os._exit(0)
 
 
