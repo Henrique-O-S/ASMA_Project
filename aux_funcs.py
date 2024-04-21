@@ -74,15 +74,17 @@ def assign_orders_to_drone(orders, drone_capacity, drone_autonomy, center_locati
     for order, _ in orders_with_ratios:
         if current_capacity + order.weight <= drone_capacity:
             if current_autonomy == 0:
-                if current_autonomy + haversine_distance(center_location[0], center_location[1], order.latitude, order.longitude) + haversine_distance(order.latitude, order.longitude, center_location[0], center_location[1]) <= drone_autonomy:
+                distance = haversine_distance(center_location[0], center_location[1], order.latitude, order.longitude)
+                if current_autonomy + 2 * distance <= drone_autonomy:
                     assigned_orders.append(order)
                     current_capacity += order.weight
-                    current_autonomy += haversine_distance(center_location[0], center_location[1], order.latitude, order.longitude)
+                    current_autonomy += distance
             else:
-                if current_autonomy + haversine_distance(assigned_orders[-1].latitude, assigned_orders[-1].longitude, order.latitude, order.longitude) + haversine_distance(order.latitude, order.longitude, center_location[0], center_location[1]) <= drone_autonomy:
+                distance2 = haversine_distance(assigned_orders[-1].latitude, assigned_orders[-1].longitude, order.latitude, order.longitude)
+                if current_autonomy + distance2 + distance <= drone_autonomy:
                     assigned_orders.append(order)
                     current_capacity += order.weight
-                    current_autonomy += haversine_distance(assigned_orders[-1].latitude, assigned_orders[-1].longitude, order.latitude, order.longitude)
+                    current_autonomy += distance2
         else:
             break  # Stop assigning orders if drone's capacity is reached
 
