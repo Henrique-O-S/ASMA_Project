@@ -96,13 +96,13 @@ def evaluate_proposals(proposals):
     max_orders = 0
     max_weight = 0
     for proposal in proposals:
-        print(proposal)
+        #print(proposal)
         center_id, orders_dict = proposal
         orders = orders_dict["orders"]
         if orders != []:
             center_location = orders_dict["center"]
             orders, total_distance = sort_orders_by_shortest_path(orders, center_location)
-            print(f"Center {center_id}: {len(orders)} orders, {total_distance} km")
+            #print(f"Center {center_id}: {len(orders)} orders, {total_distance} km")
             num_orders = len(orders)
             total_weight = 0
             for order in orders:

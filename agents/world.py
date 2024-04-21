@@ -25,13 +25,10 @@ class WorldAgent(Agent):
         self.restrictions = restrictions
         self.app = app
         self.socketio = socketio
-        self.start_time = None
-        self.end_time = None
 
     async def setup(self):
         await super().setup()
         self.add_behaviour(UpdatePointsBehaviour(self))
-        self.start_time = time.time()
 
     def update_visualization(self):
         centers_data = [{'name': center.name, 'lat': center.latitude,
@@ -44,13 +41,22 @@ class WorldAgent(Agent):
             'map_updated', {'center_data': centers_data, 'order_data': orders_data, 'drone_data': drones_data})
         # Check if all orders are delivered
         if all(len(center.orders) == 0 for center in self.centers) and all(len(drone.orders) == 0 for drone in self.drones):
-            self.end_time = time.time()
-            delivery_time = self.end_time - self.start_time
-            print(f"All orders delivered in {delivery_time} seconds.")
-            print("Simulation finished.")
+            distance = 0
+            times = {}
+            for drone in self.drones:
+                distance += drone.distanceTravelled
+                times[drone.number] = drone.distanceTravelled / ((drone.velocity * 3600 * 60) / 200)
+            print(f"Total distance: {distance} km.")
+            #print maximum, minimum and average time taken in total
+            max_time = max(times.values())
+            min_time = min(times.values())
+            avg_time = sum(times.values()) / len(times)
+            print(f"Maximum time taken: {max_time} hours.")
+            print(f"Minimum time taken: {min_time} hours.")
+            print(f"Average time taken: {avg_time} hours.")
+            print(times)
             self.signal_end()
             self.stop()
-
     def signal_end(self):
         self.socketio.emit('simulation_end', {})
         print("Simulation ended.")

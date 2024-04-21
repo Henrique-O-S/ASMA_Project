@@ -65,8 +65,8 @@ class Application:
                 res = self.read_center_csv(filename)
                 centers.extend(res)
                 agents.extend(res)
-            else:
-                print(f"File {filename} not found.")
+            #else:
+                #print(f"File {filename} not found.")
         if os.path.exists(drone_file):
             drones = self.read_drone_csv(drone_file)
             for drone in drones:
@@ -78,8 +78,8 @@ class Application:
             for agent in agents:
                 agent.drones = map(lambda x: x.jid, drones)
             agents.extend(drones)
-        else:
-            print(f"File {filename} not found.")
+        #else:
+            #print(f"File {filename} not found.")
 
         # Pass drones jid to centers and vice versa
         for agent in agents:

@@ -23,7 +23,7 @@ class DroneAgent(agent.Agent):
         self.current_capacity = capacity
         self.autonomy = autonomy
         self.full_autonomy = autonomy
-        self.velocity = ((velocity / 3600) / 60)
+        self.velocity = velocity * 0.00001666666 * 200# in km/tick
         self.initialPos = initialPos
         self.latitude = 0
         self.longitude = 0
@@ -32,10 +32,10 @@ class DroneAgent(agent.Agent):
         self.orders = []
         self.future_orders = []
         self.proposals = []
+        self.distanceTravelled = 0
 
     async def setup(self):
-        print(
-            f"Drone agent {self.number} started at ({self.latitude}, {self.longitude}) with capacity {self.capacity}, autonomy {self.autonomy} and velocity {self.velocity}")
+        #print(f"Drone agent {self.number} started at ({self.latitude}, {self.longitude}) with capacity {self.capacity}, autonomy {self.autonomy} and velocity {self.velocity}")
 
         fsm = self.DroneFSMBehaviour()
         fsm.add_state(name=DELIVERING_ORDERS, state=self.DeliveringOrders())
@@ -108,19 +108,20 @@ class DroneAgent(agent.Agent):
 
     class DroneFSMBehaviour(FSMBehaviour):
         async def on_start(self):
-            print(f"Drone FSM starting at initial state {self.current_state}")
+            #print(f"Drone FSM starting at initial state {self.current_state}")
+            pass
 
         async def on_end(self):
-            print(f"Drone FSM finished at state {self.current_state}")
+            #print(f"Drone FSM finished at state {self.current_state}")
             await self.agent.stop()
 
     class AskOrders(State):
         async def run(self):
-            print(f"Drone agent asking orders:")
+            #print(f"Drone agent asking orders:")
 
             # Send message to drones asking for their availability
             for center in self.agent.centers:
-                print(f"Asking orders from center {center}")
+                #print(f"Asking orders from center {center}")
                 msg = spade.message.Message(to=str(center))
                 msg.body = "[AskOrders]-" + \
                     str(self.agent.current_capacity) + \
@@ -131,7 +132,7 @@ class DroneAgent(agent.Agent):
 
     class AwaitOrders(State):
         async def run(self):
-            print("Waiting for orders from the center")
+            #print("Waiting for orders from the center")
             proposals = []
             for center in self.agent.centers:
                 # Wait for a message for 10 seconds
@@ -143,14 +144,14 @@ class DroneAgent(agent.Agent):
                         assigned_orders_str = body_parts[1]
                         # Convert string representation of JSON to actual dictionary
                         assigned_orders_dict = json.loads(assigned_orders_str)
-                        print(
-                            f"[DRONE{self.agent.jid}]Received orders from center {msg.sender}: {assigned_orders_dict['orders']}")
+                        #print(f"[DRONE{self.agent.jid}]Received orders from center {msg.sender}: {assigned_orders_dict['orders']}")
                         proposals.append(
                             (re.match(r"center(\d+)@localhost", (str(msg.sender))).group(1), assigned_orders_dict))
                     else:
-                        print("Received unrecognized message")
+                        #print("Received unrecognized message")
+                        pass
                 else:
-                    print("Did not receive any instructions after 10 seconds")
+                    #print("Did not receive any instructions after 10 seconds")
                     break
 
             if proposals:
@@ -161,12 +162,12 @@ class DroneAgent(agent.Agent):
 
     class AnswerProposals(State):
         async def run(self):
-            print("Answering proposals")
+            #print("Answering proposals")
             # Evaluate and select the best proposal
             best_proposal = evaluate_proposals(self.agent.proposals)
             if best_proposal:
                 center_id, orders, center_location = best_proposal
-                print(f"Selected proposal from center {center_id}: {orders}")
+                #print(f"Selected proposal from center {center_id}: {orders}")
                 # Add orders from the best proposal to self.orders
                 self.agent.future_orders.extend(orders)
                 self.agent.nextCenter = center_location
@@ -178,14 +179,13 @@ class DroneAgent(agent.Agent):
                 # Send rejection messages to other centers
                 for other_proposal in self.agent.proposals:
                     if other_proposal[0] != center_id:
-                        print(
-                            f"Rejecting proposal from center {other_proposal[0]}")
+                        #print(f"Rejecting proposal from center {other_proposal[0]}")
                         rejection_msg = Message(
                             to=("center"+other_proposal[0]+"@localhost"))
                         rejection_msg.body = "[Rejected]"
                         await self.send(rejection_msg)
             else:
-                print("No proposals received")
+                #print("No proposals received")
                 self.agent.proposals = []
                 self.set_next_state(ASK_ORDERS)
                 return
@@ -196,11 +196,11 @@ class DroneAgent(agent.Agent):
 
     class DeliveringOrders(State):
         async def run(self):
-            print("Delivering ", len(self.agent.orders), " orders")
+            #print("Delivering ", len(self.agent.orders), " orders")
 
             # iterate trough a copy of the list. NECESSARY!!
             for order in list(self.agent.orders):
-                print(f"Delivering order {order}")
+                #print(f"Delivering order {order}")
 
                 # Calculate the distance and angle to the delivery location
 
@@ -219,6 +219,7 @@ class DroneAgent(agent.Agent):
                         self.agent.longitude = order[2]
                         distance_travelled = distance
                         self.agent.autonomy -= distance_travelled
+                        self.agent.distanceTravelled += distance_travelled
                         break
 
                     else:
@@ -226,19 +227,20 @@ class DroneAgent(agent.Agent):
                         self.agent.longitude = next_long
                         distance_travelled = future_movement
 
+
                     # Decrease the drone's autonomy based on the distance travelled
                     self.agent.autonomy -= distance_travelled
-
+                    self.agent.distanceTravelled += distance_travelled
                     # Wait for a tick
                     await asyncio.sleep(1 / 60)
 
                 if self.agent.autonomy <= 0:
                     with open("output.txt", "a") as f:
                         f.write(f"Drone {self.agent.number} ran out of gas\n")
-                    print("Drone ran out of gas")
+                    #print("Drone ran out of gas")
                     # await self.agent.stop()
 
-                print(f"[{self.agent.jid}]Finished delivering order {order}")
+                #print(f"[{self.agent.jid}]Finished delivering order {order}")
                 self.agent.orders.remove(order)
             # self.agent.orders = []
             self.set_next_state(ASK_ORDERS)
@@ -246,7 +248,7 @@ class DroneAgent(agent.Agent):
     class MovingToCenter(State):
 
         async def run(self):
-            print("Moving to center")
+            #print("Moving to center")
 
             # Calculate the distance and angle to the center
 
@@ -265,6 +267,7 @@ class DroneAgent(agent.Agent):
                     self.agent.longitude = self.agent.nextCenter["longitude"]
                     distance_travelled = distance
                     self.agent.autonomy -= distance_travelled
+                    self.agent.distanceTravelled += distance_travelled
                     break
                 else:
                     self.agent.latitude = next_lat
@@ -273,17 +276,17 @@ class DroneAgent(agent.Agent):
 
                 # Decrease the drone's autonomy based on the distance travelled
                 self.agent.autonomy -= distance_travelled
-
+                self.agent.distanceTravelled += distance_travelled
                 # Wait for a tick
                 await asyncio.sleep(1 / 60)
 
             if self.agent.autonomy <= 0:
                 with open("output.txt", "a") as f:
                     f.write(f"Drone {self.agent.number} ran out of gas\n")
-                print("Drone ran out of gas ", self.agent.autonomy)
+                #print("Drone ran out of gas ", self.agent.autonomy)
                 # await self.agent.stop()
 
-            print("Arrived at center")
+            #print("Arrived at center")
             self.agent.autonomy = self.agent.full_autonomy
             self.agent.orders.extend(self.agent.future_orders)
             self.agent.future_orders = []
@@ -295,6 +298,5 @@ class DroneAgent(agent.Agent):
             msg = await self.receive(timeout=10)
             if msg:
                 if msg.body == "stop":
-                    # print stop the drone with the id x
-                    print(f"Received stop message. Stopping drone {self.agent.jid} ...")
+                    #print(f"Received stop message. Stopping drone {self.agent.jid} ...")
                     await self.agent.stop()

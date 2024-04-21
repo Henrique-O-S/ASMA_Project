@@ -20,11 +20,7 @@ class CenterAgent(Agent):
         self.dronesAvailable = []
 
     async def setup(self):
-        print(
-            f"Center agent {self.center_id} started at ({self.latitude}, {self.longitude}) with weight {self.weight}")
-
-        b1 = self.ProcessOrdersBehaviour()
-        self.add_behaviour(b1)
+        #print(f"Center agent {self.center_id} started at ({self.latitude}, {self.longitude}) with weight {self.weight}")
 
         b2 = self.AwaitDrones()
         self.add_behaviour(b2)
@@ -54,7 +50,7 @@ class CenterAgent(Agent):
 
     class AwaitDrones(CyclicBehaviour):
         async def run(self):
-            print("Center agent awaiting drones availability")
+            #print("Center agent awaiting drones availability")
             assigned_orders = []
             # wait for a message for 10 seconds
             msg = await self.receive(timeout=2)
@@ -66,8 +62,7 @@ class CenterAgent(Agent):
                     if tag == "[AskOrders]":
                         current_capacity = int(float(capacity_info))
                         current_autonomy = float(autonomy_info)
-                        print(
-                            f"Received drone's capacity. Current capacity: {current_capacity}")
+                        #print(f"Received drone's capacity. Current capacity: {current_capacity}")
 
                         # Assign orders to drones
                         assigned_orders = assign_orders_to_drone(
@@ -91,54 +86,45 @@ class CenterAgent(Agent):
                         reply.body = f"[OrdersAssigned]-{assigned_orders_str}"
                         await self.send(reply)
 
-                        print("Center agent awaiting drones response")
+                        #print("Center agent awaiting drones response")
                         # wait for a message for 10 seconds
                         response = await self.receive(timeout=2)
                         if response:
                             if response.body == "[Accepted]":
-                                print(
-                                    "Proposal accepted by drone. Processing orders.")
+                                #print("Proposal accepted by drone. Processing orders.")
                                 # Process orders and remove them from stock
                                 for assigned_order in assigned_orders:
-                                    # Print a message if the order was not found in stock
+                                    #print a message if the order was not found in stock
                                     if assigned_order.id not in [order.id for order in self.agent.orders]:
-                                        print(
-                                            f"Order {assigned_order.id} not found in stock.")
+                                        pass
+                                        #print(f"Order {assigned_order.id} not found in stock.")
                                     else:
                                         # Remove the order with the specified ID from self.agent.orders
                                         self.agent.orders = [
                                             order for order in self.agent.orders if order.id != assigned_order.id]
                             elif response.body == "[Rejected]":
-                                print("Proposal rejected by drone.")
+                                #print("Proposal rejected by drone.")
+                                pass
                         else:
-                            print(
-                                "Did not receive a response to proposal after 10 seconds")
+                            #print("Did not receive a response to proposal after 10 seconds")
+                            pass
 
                     else:
-                        print("Received unrecognized tag")
+                        #print("Received unrecognized tag")
+                        pass
                 else:
-                    print("Invalid message format")
+                    #print("Invalid message format")
+                    pass
             else:
-                print("Did not receive any message after 10 seconds")
-
-    class ProcessOrdersBehaviour(OneShotBehaviour):
-        async def run(self):
-            print(f"Center agent processing orders:")
-            for order in self.agent.orders:
-                print(order)
-            for drone in self.agent.drones:
-                print(drone)
-
-            # Here you can add your logic to process orders, e.g., assign them to delivery drivers, update statuses, etc.
-
-            # await self.agent.stop()
+                #print("Did not receive any message after 10 seconds")
+                pass
 
     class StopBehaviour(spade.behaviour.CyclicBehaviour):
         async def run(self):
             msg = await self.receive(timeout=10)
             if msg:
                 if msg.body == "stop":
-                    print(f"Received stop message. Stopping center {self.agent.jid} ...")
+                    #print(f"Received stop message. Stopping center {self.agent.jid} ...")
                     await self.agent.stop()
 
 
