@@ -33,6 +33,7 @@ class DroneAgent(agent.Agent):
         self.future_orders = []
         self.proposals = []
         self.distanceTravelled = 0
+        self.weights = []
 
     async def setup(self):
         #print(f"Drone agent {self.number} started at ({self.latitude}, {self.longitude}) with capacity {self.capacity}, autonomy {self.autonomy} and velocity {self.velocity}")
@@ -289,8 +290,9 @@ class DroneAgent(agent.Agent):
             #print("Arrived at center")
             self.agent.autonomy = self.agent.full_autonomy
             self.agent.orders.extend(self.agent.future_orders)
+            if self.agent.orders:
+                self.agent.weights.append(sum([order[3] for order in self.agent.orders]) / self.agent.capacity)
             self.agent.future_orders = []
-            # self.agent.orders, _ = sort_orders_by_shortest_path(self.agent.orders, (self.agent.latitude, self.agent.longitude))
             self.set_next_state(DELIVERING_ORDERS)
 
     class StopBehaviour(spade.behaviour.CyclicBehaviour):

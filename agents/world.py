@@ -43,9 +43,13 @@ class WorldAgent(Agent):
         if all(len(center.orders) == 0 for center in self.centers) and all(len(drone.orders) == 0 for drone in self.drones):
             distance = 0
             times = {}
+            occupation = {}
             for drone in self.drones:
                 distance += drone.distanceTravelled
-                times[drone.number] = drone.distanceTravelled / ((drone.velocity * 3600 * 60) / 200)
+                times["DRONE_" + str(drone.number)] = drone.distanceTravelled / ((drone.velocity * 3600 * 60) / 200)
+                # print average drone weight occupation
+                occupation["DRONE_" + str(drone.number)] = (sum(drone.weights) / len(drone.weights)) * 100
+
             print(f"Total distance: {distance} km.")
             #print maximum, minimum and average time taken in total
             max_time = max(times.values())
@@ -54,7 +58,8 @@ class WorldAgent(Agent):
             print(f"Maximum time taken: {max_time} hours.")
             print(f"Minimum time taken: {min_time} hours.")
             print(f"Average time taken: {avg_time} hours.")
-            print(times)
+            print("Drone times in hours: ", times)
+            print("Drone occupation ratios in %: ", occupation)
             self.signal_end()
             self.stop()
     def signal_end(self):

@@ -58,14 +58,14 @@
                 // If a marker for this name already exists and its position has changed, update its position
                 if (markers[center.name]) {
                     markers[center.name].bindPopup("<b>" + center.name + "</b><br>" + center.num_orders + " Orders");
-                    console.log("need to update");
+                    //console.log("need to update");
                 }
                 // Otherwise, if a marker for this name does not exist, create a new marker and store it in the markers object
                 else if (!markers[center.name]) {
                     var marker = L.marker([center.lat, center.lng], { icon: centerIcon }).addTo(map);
                     marker.bindPopup("<b>" + center.name + "</b><br>" + center.num_orders + " Orders");
                     markers[center.name] = marker;
-                    console.log("need to create");
+                    //console.log("need to create");
                 }
             });
 
@@ -74,7 +74,7 @@
                 if (markers[drone.name] && !markers[drone.name].getLatLng().equals([drone.lat, drone.lng])) {
                     markers[drone.name].setLatLng([drone.lat, drone.lng]);
                     markers[drone.name].bindPopup("<b>" + drone.name + "</b><br>Carrying orders: " + drone.orders.join(", "));
-                    console.log("need to update drone");
+                    //console.log("need to update drone");
                 }
                 // Otherwise, if a marker for this name does not exist, create a new marker and store it in the markers object
                 else if (!markers[drone.name]) {
@@ -83,7 +83,7 @@
                     var popupContent = "<b>" + drone.name + "</b><br>Carrying orders: " + drone.orders.join(", ");
                     marker.bindPopup(popupContent);
                     markers[drone.name] = marker;
-                    console.log("need to create drone");
+                    //console.log("need to create drone");
                 }
             });
 
@@ -95,7 +95,7 @@
                     var marker = L.marker([order.lat, order.lng], { icon: orderIcon }).addTo(map);
                     marker.bindPopup("<b>" + order.name + "</b>");
                     markers[order.name] = marker;
-                    console.log("need to create order");
+                    //console.log("need to create order");
                 }
 
                 // Add the marker to the currentOrders object
@@ -110,7 +110,7 @@
                 if (!currentOrders.hasOwnProperty(name)) {
                     map.removeLayer(markers[name]);
                     delete markers[name];
-                    console.log("need to delete order");
+                    //console.log("need to delete order");
                 }
             }
         });
