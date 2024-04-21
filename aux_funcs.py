@@ -89,39 +89,6 @@ def assign_orders_to_drone(orders, drone_capacity, drone_autonomy, center_locati
     return assigned_orders
 
 
-def calculate_savings(orders, center_location):
-    savings = {}
-    n = len(orders)
-    for i in range(n):
-        for j in range(i+1, n):
-            savings[(i, j)] = haversine_distance(center_location[0], center_location[1], orders[i].latitude, orders[i].longitude) + haversine_distance(center_location[0],
-                                                                                                                                                       center_location[1], orders[j].latitude, orders[j].longitude) - haversine_distance(orders[i].latitude, orders[i].longitude, orders[j].latitude, orders[j].longitude)
-    return savings
-
-
-def clarke_wright_savings(orders, drone_capacity, center_location):
-    savings = calculate_savings(orders, center_location)
-    sorted_savings = sorted(savings.items(), key=lambda x: x[1], reverse=True)
-    route = []
-    route_capacity = 0
-
-    for (i, j), s in sorted_savings:
-        if i not in route and j not in route:
-            if route_capacity + orders[i].weight <= drone_capacity:
-                route.append(i)
-                route_capacity += orders[i].weight
-            if route_capacity + orders[j].weight <= drone_capacity:
-                route.append(j)
-                route_capacity += orders[j].weight
-            if route_capacity >= drone_capacity:
-                break
-
-    # Convert indices to Order objects
-    best_route_orders = [orders[idx] for idx in route]
-
-    return best_route_orders
-
-
 def evaluate_proposals(proposals):
     best_proposal = None
     max_orders = 0
