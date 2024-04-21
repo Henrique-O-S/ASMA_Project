@@ -10,7 +10,7 @@ class UpdatePointsBehaviour(CyclicBehaviour):
     def __init__(self, agent):
         super().__init__()
         self.agent = agent
-        self.interval = 0.1
+        self.interval = 1 / 60
 
     async def run(self):
         self.agent.update_visualization()

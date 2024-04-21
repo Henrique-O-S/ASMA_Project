@@ -23,7 +23,7 @@ class DroneAgent(agent.Agent):
         self.current_capacity = capacity
         self.autonomy = autonomy
         self.full_autonomy = autonomy
-        self.velocity = ((velocity / 3600) / 8)
+        self.velocity = ((velocity / 3600) / 60)
         self.initialPos = initialPos
         self.latitude = 0
         self.longitude = 0
@@ -191,7 +191,6 @@ class DroneAgent(agent.Agent):
                 return
 
             self.agent.proposals = []
-            print("SUCESSO MALUCO")
             # Should be substituted after the next step is implemented
             self.set_next_state(MOVING_TO_CENTER)
 
@@ -231,7 +230,7 @@ class DroneAgent(agent.Agent):
                     self.agent.autonomy -= distance_travelled
 
                     # Wait for a tick
-                    await asyncio.sleep(0.125)
+                    await asyncio.sleep(1 / 60)
 
                 if self.agent.autonomy <= 0:
                     with open("output.txt", "a") as f:
@@ -276,7 +275,7 @@ class DroneAgent(agent.Agent):
                 self.agent.autonomy -= distance_travelled
 
                 # Wait for a tick
-                await asyncio.sleep(0.125)
+                await asyncio.sleep(1 / 60)
 
             if self.agent.autonomy <= 0:
                 with open("output.txt", "a") as f:
